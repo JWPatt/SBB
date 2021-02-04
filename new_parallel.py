@@ -64,7 +64,7 @@ def main():
     typos = set()
 
     # if os.path.isfile(main_table + '') is False:
-    data.update(read_all_city_csv_short(all_city_file_name))
+    data.update(betriebspunkt_to_dict(all_city_file_name))
     data.update(use_key_cities(key_cities_name))
 
     if 'Zürich HB' in data: del data['Zürich HB']
@@ -79,7 +79,7 @@ def main():
             input()
             if os.path.isfile(main_table) is True: os.remove(main_table)
             if os.path.isfile(shitlist_name) is True: os.remove(shitlist_name)
-            data.update(read_all_city_csv_short(all_city_file_name))
+            data.update(betriebspunkt_to_dict(all_city_file_name))
             data.update(use_key_cities(key_cities_name))
             if 'Zürich HB' in data: del data['Zürich HB']
 

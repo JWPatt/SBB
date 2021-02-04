@@ -6,6 +6,7 @@ import os
 import pandas
 import random
 from read_list_of_cities_csv import *
+from write_functions import *
 
 # a list of stations which will yield many between-stations, i.e. the extrema of the network
 
@@ -23,13 +24,13 @@ from read_list_of_cities_csv import *
 
 # deletes csv files and starts the program afresh (ie, clears cache)
 
-key_cities_name = 'key_cities_sbb_copy.csv'
+key_cities_name = 'key_cities_sbb.csv'
 all_city_file_name = 'Betriebspunkt_short.csv'
 main_table = 'main_table.csv'
 shitlist_name = 'shitlist.csv'
 extrema_csv = 'extrema.csv'
 typos_csv = 'typos.csv'
-fresh_start = True
+fresh_start = False
 
 # os.system("rm " + main_table )
 # input()
@@ -58,7 +59,7 @@ def main():
     q = manager.Queue()
     # pool = mp.Pool(mp.cpu_count())
     print("Number of cores: " + str(mp.cpu_count()))
-    pool = mp.Pool(3)
+    pool = mp.Pool(2)
 
     API_counter = 0
     duration_counter = 0
@@ -70,9 +71,10 @@ def main():
     not_extrema = set()
 
     # if os.path.isfile(main_table + '') is False:
-    data.update(read_all_city_csv_short(all_city_file_name))
+    data.update(betriebspunkt_to_dict(all_city_file_name))
     data.update(read_list_of_cities(key_cities_name))
     extrema.update(read_list_of_cities(extrema_csv))
+    typos.update(read_list_of_cities(typos_csv))
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table) is True:
@@ -86,9 +88,11 @@ def main():
             input()
             if os.path.isfile(main_table) is True: os.remove(main_table)
             if os.path.isfile(shitlist_name) is True: os.remove(shitlist_name)
-            data.update(read_all_city_csv_short(all_city_file_name))
+            data.update(betriebspunkt_to_dict(all_city_file_name))
             data.update(read_list_of_cities(key_cities_name))
             if 'Zürich HB' in data: del data['Zürich HB']
+    else:
+        os.system("touch " + main_table)
 
 
 
@@ -101,7 +105,7 @@ def main():
     # for key in list(data):
     t_init = time.time()
     for key in sorted(list(data), key=lambda x: 1):
-        if key in shitlist:
+        if key in shitlist or key in typos:
             continue
         if data[key] is None:
             extrema.add(key)
@@ -192,6 +196,7 @@ def listener(data,duration_counter,old_data, q):
             for key in list(data_portion):
                 if key not in data:
                     data[key] = data_portion[key]
+
                     write_data_line(key, data[key], openfile)
                     openfile.flush()
                     # print("added new key to data: " + str(key))
