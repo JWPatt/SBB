@@ -70,10 +70,11 @@ def main():
     not_extrema = set()
 
     # if os.path.isfile(main_table + '') is False:
-    data.update(betriebspunkt_to_dict(all_city_file_name))
+    data.update(betriebspunkt_csv_to_empty_dict(all_city_file_name))
     data.update(csv_to_empty_dict(key_cities_name))
     extrema.update(csv_to_set(extrema_csv))
     typos.update(csv_to_set(typos_csv))
+
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table) is True:
@@ -87,7 +88,7 @@ def main():
             input()
             if os.path.isfile(main_table) is True: os.remove(main_table)
             if os.path.isfile(shitlist_name) is True: os.remove(shitlist_name)
-            data.update(betriebspunkt_to_dict(all_city_file_name))
+            data.update(betriebspunkt_csv_to_empty_dict(all_city_file_name))
             data.update(csv_to_empty_dict(key_cities_name))
             if 'Zürich HB' in data: del data['Zürich HB']
     else:
@@ -103,6 +104,7 @@ def main():
     stack_counter = 0
     # for key in list(data):
     t_init = time.time()
+
     for key in sorted(list(data), key=lambda x: 1):
         if key in shitlist or key in typos:
             continue
@@ -163,19 +165,8 @@ def main():
     pool.close()
     pool.join()
 
-    with open(extrema_csv, 'w') as extremafile:
-        print(str(extrema))
-        for item in extrema:
-            write_destination_to_csv(item, extremafile)
-            extremafile.flush()
-    with open(typos_csv, 'w') as typosfile:
-        for item in typos:
-            write_destination_to_csv(item, typosfile)
-            typosfile.flush()
-
-
-                ### 29.11.2020 fresh run: outputs empty file; rerun outputs many things
-                ### 30.11.2020 still have the 29.11 problem, but now typo stations won't be shitlisted
+    write_destination_set_to_csv(extrema, extrema_csv)
+    write_destination_set_to_csv(typos, typos_csv)
 
 
 def listener(data,duration_counter,old_data, q):
@@ -185,7 +176,7 @@ def listener(data,duration_counter,old_data, q):
     with open(main_table, 'w') as openfile:
         # csv_writer = writer(openfile)
         for key in old_data:
-            write_data_line(key, old_data[key], openfile)
+            write_data_line_to_open_csv(key, old_data[key], openfile)
             openfile.flush()
 
         while 1:
@@ -196,13 +187,13 @@ def listener(data,duration_counter,old_data, q):
                 if key not in data:
                     data[key] = data_portion[key]
 
-                    write_data_line(key, data[key], openfile)
+                    write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
                     # print("added new key to data: " + str(key))
                     chain_counter += 1
                 elif data[key] is None:
                     data[key] = data_portion[key]
-                    write_data_line(key, data[key], openfile)
+                    write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
                     # print("updated value in data: " + str(key))
                     chain_counter += 1
