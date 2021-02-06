@@ -9,33 +9,22 @@ import numpy as np
 import json
 import urllib.request
 import plotly.graph_objs as go
+from datetime import time, tzinfo, timedelta
 
 # with open('saved_sbb_table.txt', 'r') as file:
 #     sbb_data = json.load(file)
 
-intermediate_data_name = 'main_table.csv'
+def sec_to_hhmm(seconds):
+    hours=seconds//3600
+    minutes = (seconds-3600*hours)//60
+    return (str(hours) + ":" + str(minutes).zfill(2))
+intermediate_data_name = 'backup/main_table.csv'
 
-sbb_data = csv_to_dict(intermediate_data_name)
-city = []
-lat_data = []
-lon_data = []
-duration = []
-for key in sbb_data:
-    if sbb_data[key] is not None:
-        city.append(key)
-        lat_data.append(sbb_data[key][0])
-        lon_data.append(sbb_data[key][1])
-        duration.append(sbb_data[key][2])
-        # duration.append(
-        #     sum(x * int(t) for x, t in zip([3600, 60, 1], (sbb_data[key][2].replace('00d', '')).split(":")))
-        # )
-sbb = pd.DataFrame({'city':city,
-                    'lat':lat_data,
-                   'lon':lon_data,
-                   'duration':duration})
-print(sbb.iloc[sbb['duration'].idxmax()])
+sbb = pd.read_csv(intermediate_data_name,names=['city','lat','lon','duration'])
+sbb = sbb.round({'lat':3, 'lon':3})
 
-# print('does {} work?'.format(sbb['city']))
+sbb['hovertext'] = sbb['duration'].apply(sec_to_hhmm)
+
 
 # cap_max = int(input('Current maximum is ' + str(max(duration)) + '. Cap maximum at: '))
 cap_max = 60*60*8
@@ -70,18 +59,16 @@ fig = go.Figure()
 #                                     marker_line_width=1))
 
 fig.add_trace(go.Scattermapbox(      # Scattermapbox on tiles, scattergeo on outline maps
-        lon = sbb['lon'],
-        lat = sbb['lat'],
-        mode = 'markers',
-        marker_color = sbb['duration'],
-        marker_size = 10,
-        text=sbb['city'],
-    # dest = sbb['city'],
-hovertemplate =
-    '<b>%{text}</b>'+
-    '<br>%{marker_color} hours<br>'
-    # text = ['Custom text {}'.format(i + 1) for i in range(5)]
-        ))
+    lon = sbb['lon'],
+    lat = sbb['lat'],
+    mode = 'markers',
+    marker_color = sbb['duration'],
+    marker_size = 10,
+    text=sbb['city'],
+    hovertext = sbb['hovertext'],
+    # coloraxis="coloraxis"
+    # showlegend=True
+))
 
 # fig.add_trace(go.Scattergeo(      # choropleth on tiles, scattergeo on outline maps
 #         lon = sbb['lon'],

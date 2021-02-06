@@ -4,46 +4,25 @@ from sbb_api_lookup_connection_multi import *
 from read_in_csv import *
 import os
 import pandas
-import random
 from write_functions import *
 
-# a list of stations which will yield many between-stations, i.e. the extrema of the network
-
-# a list of all stations in Switzerland, some 27,000.
-
-# a csv containing stations, lat/log, and trip durations.
-# during/after a run, data is stored here and then read by the plotting script
-# if this script is rerun, the data in this csv will be loaded into the data dict and therefore
-# no call to the SBB API is required, preventing unnecessary API calls
-
-# written during the script, a list of names from which no data is given by the API
-# the API is good at spelling errors, but sometimes the station just doesn't register or exist
-
-# a list of cities which do not appear as intermediate cities in any search, i.e. a-priory unknown extrema
-
-# deletes csv files and starts the program afresh (ie, clears cache)
-
-key_cities_name = 'key_cities_sbb.csv'
-all_city_file_name = 'Betriebspunkt_short.csv'
-main_table = 'main_table.csv'
-shitlist_name = 'shitlist.csv'
-extrema_csv = 'extrema.csv'
-typos_csv = 'typos.csv'
-fresh_start = False
-
-# os.system("rm " + main_table )
-# input()
-# os.system("rm " + main_table + " " + shitlist_name + " " + extrema_csv)
 
 def main():
+    key_cities_name = 'key_cities_sbb.csv'
+    all_city_file_name = 'Betriebspunkt_short.csv'
+    main_table_csv = 'main_table.csv'
+    bad_destinations_name = 'shitlist.csv'
+    extrema_csv = 'extrema.csv'
+    typos_csv = 'typos.csv'
+    fresh_start = False
 
     if fresh_start:
-        if os.path.isfile(main_table):
-            os.system("rm " + main_table)
-            os.system("touch " + main_table)
-        if os.path.isfile(shitlist_name):
-            os.system("rm " + shitlist_name)
-            os.system("touch " + shitlist_name)
+        if os.path.isfile(main_table_csv):
+            os.system("rm " + main_table_csv)
+            os.system("touch " + main_table_csv)
+        if os.path.isfile(bad_destinations_name):
+            os.system("rm " + bad_destinations_name)
+            os.system("touch " + bad_destinations_name)
         if os.path.isfile(extrema_csv):
             os.system("rm " + extrema_csv)
             os.system("touch " + extrema_csv)
@@ -64,7 +43,7 @@ def main():
     duration_counter = 0
     data = manager.dict()
     old_data = {}
-    shitlist = {}
+    bad_destinations = set()
     typos = set()
     extrema = set()
     not_extrema = set()
@@ -77,42 +56,38 @@ def main():
 
 
     if 'Zürich HB' in data: del data['Zürich HB']
-    if os.path.isfile(main_table) is True:
+    if os.path.isfile(main_table_csv) is True:
         try:
-            old_data = csv_to_dict(main_table)
+            old_data = csv_to_dict(main_table_csv)
             print("Adding old_data of " + str(len(old_data)) + " cities into data, which has " + str(len(data)) + " cities - ok?")
             data.update(old_data)
-            shitlist = csv_to_set(shitlist_name)
+            bad_destinations = csv_to_set(bad_destinations_name)
         except pandas.errors.EmptyDataError:
-            print('Starting simulation afresh - continue?')
-            input()
-            if os.path.isfile(main_table) is True: os.remove(main_table)
-            if os.path.isfile(shitlist_name) is True: os.remove(shitlist_name)
+            if os.path.isfile(main_table_csv): os.remove(main_table_csv)
+            if os.path.isfile(bad_destinations_name): os.remove(bad_destinations_name)
             data.update(betriebspunkt_csv_to_empty_dict(all_city_file_name))
             data.update(csv_to_empty_dict(key_cities_name))
             if 'Zürich HB' in data: del data['Zürich HB']
     else:
-        os.system("touch " + main_table)
-
-
+        os.system("touch " + main_table_csv)
 
     # put listener to work first
-    watcher = pool.apply_async(listener, (data, duration_counter,old_data, q,))
+    watcher = pool.apply_async(listener, (main_table_csv, data, duration_counter, old_data, q,))
 
-    #fire off workers
+    # fire off workers
     jobs = []
     stack_counter = 0
     # for key in list(data):
     t_init = time.time()
 
     for key in sorted(list(data), key=lambda x: 1):
-        if key in shitlist or key in typos:
+        if key in bad_destinations or key in typos:
             continue
         if data[key] is None:
             extrema.add(key)
             stack_counter += 1
             print('Adding ' + key + ' to Pool.')
-            job = pool.apply_async(update_master_table_multi, (key, data, q))  # TODO reorganize how parallelization works here
+            job = pool.apply_async(update_master_table_multi, (key, data, q))
             jobs.append(job)
             if stack_counter == 500000:
                 break
@@ -123,44 +98,27 @@ def main():
     t_init = time.time()
     for job in jobs:
         destination, data_portion = job.get()
-        # data.update(data_portion)
-        # print('got ' + str(destination) + ' and ' + str(data_portion))
-        if not data_portion:  # if it doesn't exist, it goes to shitlist
-            write_line_to_shit_list(destination, shitlist_name)  # TODO dont write directly, store and write at end
-            # print('Writing ' + destination + ' to shitlist because data_portion is ' + str(data_portion))
-            # del data[destination]
+        print(destination, data_portion)
+        if not data_portion:  # if it doesn't exist, it goes to bad_destinations
+            bad_destinations.add(destination)
             extrema.discard(destination)
         else:
-            for key in list(data_portion):  # do list() because dict cant change size during normal iteration
+            for key in list(data_portion):
                 if data_portion[key] is None:
                     not_extrema.add(key)
-                    if key != destination:  # will only happen if it was a typo city
-                        # write_line_to_shit_list(key, shitlist_name)
-                        # print('Writing ' + key + ' to shitlist.')
-                        typos.add(key)  # add the original typo'd name
-                        # print('adding ' + destination + ' to typos')
-                        if destination not in not_extrema:  # if it's not NOT an extrema, it could be an extrema
-                            # print('adding ' + destination + ' to extrema')
+                    if key != destination:
+                        typos.add(key)  # the city name given is not the city name returned; is therefore a typo
+                        if destination not in not_extrema:
                             extrema.add(destination)
-                        # print ('removing ' + key + ' and ' + str(data_portion[key]))
                     del data_portion[key]
-                    # else:
-                    #     typos.add(destination)
                 if key in extrema:
                     if destination != key:
-                        extrema.discard(key)
+                        extrema.discard(key)  # if this key is not the final destination, it cannot be an extrema
             if data_portion:
-                # print('listener is being fed ' + str(data_portion))
                 q.put(data_portion)
-            # else:
-            #     if key in extrema:
-            #         extrema.discard(key)
-            #     extrema.add(destination)
-
-
     print ('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
-    #now we are done, kill the listener
+    # now we are done, kill the listener
     q.put('kill')
     pool.close()
     pool.join()
@@ -169,11 +127,9 @@ def main():
     write_destination_set_to_csv(typos, typos_csv)
 
 
-def listener(data,duration_counter,old_data, q):
-    '''listens for messages on the q, writes to file. '''
-    # appends new results to the intermediate data file
-    t_init = time.time()
-    with open(main_table, 'w') as openfile:
+def listener(main_table_csv,data,duration_counter,old_data, q):
+    '''listens for messages on the q, writes to open file. '''
+    with open(main_table_csv, 'w') as openfile:
         # csv_writer = writer(openfile)
         for key in old_data:
             write_data_line_to_open_csv(key, old_data[key], openfile)
@@ -181,39 +137,21 @@ def listener(data,duration_counter,old_data, q):
 
         while 1:
             data_portion = q.get()
-            # print('listener heard ' + str(data_portion))
             chain_counter = 0
             for key in list(data_portion):
                 if key not in data:
                     data[key] = data_portion[key]
-
                     write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
-                    # print("added new key to data: " + str(key))
                     chain_counter += 1
                 elif data[key] is None:
                     data[key] = data_portion[key]
                     write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
-                    # print("updated value in data: " + str(key))
                     chain_counter += 1
             duration_counter += chain_counter
             print('API for ' + key + ' yielded ' + str(chain_counter) + ' new durations, for a total of ' + str(duration_counter))
 
-            # m = q.get()
-            # if m == 'kill':
-            #     f.write('killed')
-            #     break
-            # f.write(str(m) + '\n')
-            # f.flush()
-
 
 if __name__ == "__main__":
-   main()
-
-
-# 11.12.2020 needs a big overhaul: replace dict as main container with pandas dataframe.
-# this allows for all the data to be held in one place, rather than several files
-# listing which cities are extrema, not extrema, misspelled, shitlisted, etc.
-# and allows for quick sorting on those factors for simple exporting.
-# also allows for intermediate station data to be held and extra station info
+    main()

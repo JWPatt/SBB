@@ -1,22 +1,21 @@
 import requests
 
+
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
-
-def update_master_table_multi(destination, data,q):
-
+def update_master_table_multi(destination, data, q):
     if data[destination] is not None:
-        return destination, {destination: None}
+        return destination, {destination: data[destination]}
 
     data_portions = []
     data_portion = {}
     departure_time = []
 
     print('API query for ' + destination )
-    response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2020-06-25&time=7:00&limit=3')
-    print(response.status_code)
+    response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2021-06-25&time=7:00&limit=3')
     jdata = response.json()
+
     if response.status_code != 200:
         print("ERROR: " + str(response.status_code) + ": " + str(jdata['errors'][0]['message']))
         if response.status_code == 429:
@@ -24,25 +23,19 @@ def update_master_table_multi(destination, data,q):
         return destination, {destination: None}
     else:
         try:
-            if jdata['to']['name'] == "null":
+            print(jdata['to']['name'])
+            jdata['to']['name']
+            if jdata['to'] is None:
                 print("ERROR: API response is null - check the API URL")
                 return destination, {destination: None}
             else:
                 data_portion[destination] = None
         except (KeyError, IndexError, TypeError, UnboundLocalError):
             present = False
-
-    #a mispelled station may still give results; remove it so we don't throw it into the shitlist.
-    # if jdata['to'] is not None:
-    #     # destination = jdata['to']['name']     # commenting this out prevents typo'd stations being re-API'd
-    #     print ('destination is not none' + str(destination))
-    # else: data_portion[destination] = None
-
-    # print('searching for ' + destination + ' and finding ' + str(jdata['to']))
-
+            print("ERROR: API response is null - check the API URL")
+            input()
 
     for t in range(len(jdata['connections'])):
-
         try:
             jdata['connections'][t]['sections'][0]['journey']['passList'][0]['departureTimestamp']
         except (KeyError, IndexError, TypeError, UnboundLocalError):
@@ -51,7 +44,6 @@ def update_master_table_multi(destination, data,q):
             present = True
         if present and not None:
             departure_time.append(jdata['connections'][t]['sections'][0]['journey']['passList'][0]['departureTimestamp'])
-
 
         try:
             for i in range(0, len(jdata['connections'][t]['sections'])):
@@ -73,8 +65,8 @@ def update_master_table_multi(destination, data,q):
             print('Key Error')
         except(IndexError):
             print('Index Error')
-        # except(TypeError):
-        #     print('Type Error')
+        except(TypeError):
+            print('Type Error')
         except(UnboundLocalError):
             print('Unbound Local Error')
         data_portions.append(data_portion)
@@ -87,43 +79,19 @@ def update_master_table_multi(destination, data,q):
                     if key not in output_data_portion or data_portions[t][key][2] < output_data_portion[key][2]:
                         output_data_portion[key] = data_portions[t][key]
     except (TypeError):
-        print('TypeError, sbb_api_lookup_connection_multi, line 79')
-        # print('returning ' + destination + " and " + str({destination: None}))
-        # return destination, {destination: None}
+        print('TypeError, sbb_api_lookup_connection_multi')
 
     # if destination has a typo, create valid duration for both the typo name and corrected name
     # this prevents future searches of the typo'd name.
     if jdata['to'] is not None:
         if destination != jdata['to']['name']:
-            # data_portion[destination] = data_portion[jdata['to']['name']]
-            # print("changing " + destination + " to " + str(jdata['to']['name']))
             destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
-    print("returning " + destination + " and " + str(data_portion))
+
     return destination, data_portion
 
 
-# def check_portion_against_data_and_write(data_portion, data, openfile):
-#     for key in data_portion:
-#         if key not in data:
-#             data[key] = data_portion[key]
-#             write_data_line(key, data[key], openfile)
-#         elif data[key] is None:
-#             data[key] = data_portion[key]
-#             write_data_line(key, data[key], openfile)
-#     openfile.flush()
 
-
-
-
-
-
-# old_dict = {'Zurich':[20, 50, 100]}
-# print(old_dict)
-# update_master_table_multi(old_dict, 'Rosenlaui')
-# print(old_dict.keys())
-# print(old_dict.values())
-
-
+# API return json structure
 
 #zurich, data['connections'][0]['sections'][i]['journey']['passList'][j]['departureTimestamp']
 """
