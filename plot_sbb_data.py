@@ -1,9 +1,5 @@
-import json
 import matplotlib.pyplot as plt
-import numpy
-import datetime
-import time
-from read_in_csv import *
+from io_func.read_in_csv import *
 
 # with open('saved_sbb_table.txt', 'r') as file:
 #     sbb_data = json.load(file)

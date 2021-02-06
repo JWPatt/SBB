@@ -1,10 +1,9 @@
 import multiprocessing as mp
 import time
-from sbb_api_lookup_connection_multi import *
-from read_in_csv import *
+from sbb_api import *
+from io_func.read_in_csv import *
 import os
 import pandas
-import random
 from read_list_of_cities_csv import *
 
 # a list of stations which will yield many between-stations, i.e. the extrema of the network
@@ -95,7 +94,7 @@ def main():
         if data[key] is None:
             stack_counter += 1
             print('Adding ' + key + ' to Pool.')
-            job = pool.apply_async(update_master_table_multi, (key, data, q))  # TODO reorganize how parallelization works here
+            job = pool.apply_async(sbb_query_and_update, (key, data, q))  # TODO reorganize how parallelization works here
             jobs.append(job)
             if stack_counter == 500000:
                 break

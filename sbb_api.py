@@ -4,7 +4,7 @@ import requests
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
-def update_master_table_multi(destination, data, q):
+def sbb_query_and_update(destination, data, q):
     if data[destination] is not None:
         return destination, {destination: data[destination]}
 
@@ -23,17 +23,15 @@ def update_master_table_multi(destination, data, q):
         return destination, {destination: None}
     else:
         try:
-            print(jdata['to']['name'])
             jdata['to']['name']
-            if jdata['to'] is None:
-                print("ERROR: API response is null - check the API URL")
-                return destination, {destination: None}
-            else:
-                data_portion[destination] = None
+            # if jdata['to'] is None:
+            #     print("ERROR: API response is null - check the destination name or API URL")
+            #     return destination, {destination: None}
+            # else:
+            #     data_portion[destination] = None
         except (KeyError, IndexError, TypeError, UnboundLocalError):
             present = False
             print("ERROR: API response is null - check the API URL")
-            input()
 
     for t in range(len(jdata['connections'])):
         try:

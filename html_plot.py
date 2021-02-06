@@ -1,15 +1,9 @@
-import json
-import matplotlib.pyplot as plt
-import numpy
-import datetime
-import time
-import pandas as pd
-from read_in_csv import *
+from io_func.read_in_csv import *
 import numpy as np
 import json
 import urllib.request
 import plotly.graph_objs as go
-from datetime import time, tzinfo, timedelta
+
 
 # with open('saved_sbb_table.txt', 'r') as file:
 #     sbb_data = json.load(file)

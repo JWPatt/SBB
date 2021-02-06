@@ -1,28 +1,27 @@
 import multiprocessing as mp
 import time
-from sbb_api_lookup_connection_multi import *
-from read_in_csv import *
 import os
 import pandas
-from write_functions import *
+import io_func
+from sbb_api import sbb_query_and_update
 
 
 def main():
-    key_cities_name = 'key_cities_sbb.csv'
-    all_city_file_name = 'Betriebspunkt_short.csv'
-    main_table_csv = 'main_table.csv'
-    bad_destinations_name = 'shitlist.csv'
-    extrema_csv = 'extrema.csv'
-    typos_csv = 'typos.csv'
+    key_cities_csv = 'input_csvs/key_cities_sbb.csv'
+    all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
+    main_table_csv = 'output_csvs/main_table.csv'
+    bad_destinations_csv = 'output_csvs/shitlist.csv'
+    extrema_csv = 'output_csvs/extrema.csv'
+    typos_csv = 'output_csvs/typos.csv'
     fresh_start = False
 
     if fresh_start:
         if os.path.isfile(main_table_csv):
             os.system("rm " + main_table_csv)
             os.system("touch " + main_table_csv)
-        if os.path.isfile(bad_destinations_name):
-            os.system("rm " + bad_destinations_name)
-            os.system("touch " + bad_destinations_name)
+        if os.path.isfile(bad_destinations_csv):
+            os.system("rm " + bad_destinations_csv)
+            os.system("touch " + bad_destinations_csv)
         if os.path.isfile(extrema_csv):
             os.system("rm " + extrema_csv)
             os.system("touch " + extrema_csv)
@@ -49,36 +48,32 @@ def main():
     not_extrema = set()
 
     # if os.path.isfile(main_table + '') is False:
-    data.update(betriebspunkt_csv_to_empty_dict(all_city_file_name))
-    data.update(csv_to_empty_dict(key_cities_name))
-    extrema.update(csv_to_set(extrema_csv))
-    typos.update(csv_to_set(typos_csv))
+    data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
+    data.update(io_func.csv_to_empty_dict(key_cities_csv))
+    extrema.update(io_func.csv_to_set(extrema_csv))
+    typos.update(io_func.csv_to_set(typos_csv))
 
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table_csv) is True:
         try:
-            old_data = csv_to_dict(main_table_csv)
+            old_data = io_func.csv_to_dict(main_table_csv)
             print("Adding old_data of " + str(len(old_data)) + " cities into data, which has " + str(len(data)) + " cities - ok?")
             data.update(old_data)
-            bad_destinations = csv_to_set(bad_destinations_name)
+            bad_destinations = io_func.csv_to_set(bad_destinations_csv)
         except pandas.errors.EmptyDataError:
             if os.path.isfile(main_table_csv): os.remove(main_table_csv)
-            if os.path.isfile(bad_destinations_name): os.remove(bad_destinations_name)
-            data.update(betriebspunkt_csv_to_empty_dict(all_city_file_name))
-            data.update(csv_to_empty_dict(key_cities_name))
+            if os.path.isfile(bad_destinations_csv): os.remove(bad_destinations_csv)
+            data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
+            data.update(io_func.csv_to_empty_dict(key_cities_csv))
             if 'Zürich HB' in data: del data['Zürich HB']
     else:
         os.system("touch " + main_table_csv)
 
-    # put listener to work first
-    watcher = pool.apply_async(listener, (main_table_csv, data, duration_counter, old_data, q,))
-
-    # fire off workers
     jobs = []
     stack_counter = 0
-    # for key in list(data):
     t_init = time.time()
+    listener = pool.apply_async(listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
 
     for key in sorted(list(data), key=lambda x: 1):
         if key in bad_destinations or key in typos:
@@ -87,7 +82,7 @@ def main():
             extrema.add(key)
             stack_counter += 1
             print('Adding ' + key + ' to Pool.')
-            job = pool.apply_async(update_master_table_multi, (key, data, q))
+            job = pool.apply_async(sbb_query_and_update, (key, data, q))
             jobs.append(job)
             if stack_counter == 500000:
                 break
@@ -123,16 +118,17 @@ def main():
     pool.close()
     pool.join()
 
-    write_destination_set_to_csv(extrema, extrema_csv)
-    write_destination_set_to_csv(typos, typos_csv)
+    io_func.write_destination_set_to_csv(extrema, extrema_csv)
+    io_func.write_destination_set_to_csv(typos, typos_csv)
+    io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
 
 
-def listener(main_table_csv,data,duration_counter,old_data, q):
+def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
     '''listens for messages on the q, writes to open file. '''
     with open(main_table_csv, 'w') as openfile:
         # csv_writer = writer(openfile)
         for key in old_data:
-            write_data_line_to_open_csv(key, old_data[key], openfile)
+            io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
             openfile.flush()
 
         while 1:
@@ -141,12 +137,12 @@ def listener(main_table_csv,data,duration_counter,old_data, q):
             for key in list(data_portion):
                 if key not in data:
                     data[key] = data_portion[key]
-                    write_data_line_to_open_csv(key, data[key], openfile)
+                    io_func.write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
                     chain_counter += 1
                 elif data[key] is None:
                     data[key] = data_portion[key]
-                    write_data_line_to_open_csv(key, data[key], openfile)
+                    io_func.write_data_line_to_open_csv(key, data[key], openfile)
                     openfile.flush()
                     chain_counter += 1
             duration_counter += chain_counter

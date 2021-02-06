@@ -1,6 +1,3 @@
-from read_in_csv import csv_to_empty_dict
-
-
 # take in the destination and [lat,lon,duration] name and write line to an already open file
 def write_data_line_to_open_csv(destination, data_list, openfile):
     openfile.write('"' + destination + '",' + str(data_list[0]) + ',' + str(data_list[1]) + ',' + str(data_list[2]) +
