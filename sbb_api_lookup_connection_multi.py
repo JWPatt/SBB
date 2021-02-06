@@ -1,3 +1,5 @@
+import requests
+
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
@@ -7,9 +9,12 @@ def update_master_table_multi(destination, data,q):
     if data[destination] is not None:
         return destination, {destination: None}
 
+    data_portions = []
+    data_portion = {}
+    departure_time = []
+
     print('API query for ' + destination )
-    import requests
-    response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2021-06-25&time=7:00&limit=3')
+    response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2020-06-25&time=7:00&limit=3')
     print(response.status_code)
     jdata = response.json()
     if response.status_code != 200:
@@ -17,18 +22,15 @@ def update_master_table_multi(destination, data,q):
         if response.status_code == 429:
             input()
         return destination, {destination: None}
-
-    # with open("/Users/Patterson/Documents/Python/test/sample_sbb_api.txt") as f:
-    #     jdata = json.load(f)
-    #     print(type(f))
-    data_portions = []
-    data_portion = {}
-    departure_time = []
-    try:
-        jdata['to']['name']
-        data_portion[destination] = None
-    except (KeyError, IndexError, TypeError, UnboundLocalError):
-        present = False
+    else:
+        try:
+            if jdata['to']['name'] == "null":
+                print("ERROR: API response is null - check the API URL")
+                return destination, {destination: None}
+            else:
+                data_portion[destination] = None
+        except (KeyError, IndexError, TypeError, UnboundLocalError):
+            present = False
 
     #a mispelled station may still give results; remove it so we don't throw it into the shitlist.
     # if jdata['to'] is not None:
