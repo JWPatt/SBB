@@ -15,10 +15,19 @@ def csv_to_dict(intermediate_data_name):
     return data_segment
 
 
+def csv_to_set(file_name):
+    data_portion = set()
+    if os.path.isfile(file_name) and os.path.getsize(file_name) > 0:
+        data_portion = set(pd.read_csv(file_name, header=None, encoding="ISO-8859-1")[0])
+    return data_portion
+
+
 # reads destination
-def csv_to_empty_dict(cities_file_name):
-    data_portion = set(pd.read_csv(cities_file_name, header=None, encoding="ISO-8859-1")[0])
-    data_portion = {key: None for key in data_portion}
+def csv_to_empty_dict(file_name):
+    data_portion = {}
+    if os.path.isfile(file_name) and os.path.getsize(file_name) > 0:
+        data_portion = set(pd.read_csv(file_name, header=None, encoding="ISO-8859-1")[0])
+        data_portion = {key: None for key in data_portion}
     return data_portion
 
 

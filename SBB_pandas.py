@@ -72,8 +72,8 @@ def main():
     # if os.path.isfile(main_table + '') is False:
     data.update(betriebspunkt_to_dict(all_city_file_name))
     data.update(csv_to_empty_dict(key_cities_name))
-    extrema.update(csv_to_empty_dict(extrema_csv))
-    typos.update(csv_to_empty_dict(typos_csv))
+    extrema.update(csv_to_set(extrema_csv))
+    typos.update(csv_to_set(typos_csv))
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table) is True:
@@ -81,7 +81,7 @@ def main():
             old_data = csv_to_dict(main_table)
             print("Adding old_data of " + str(len(old_data)) + " cities into data, which has " + str(len(data)) + " cities - ok?")
             data.update(old_data)
-            shitlist = open_shitlist(shitlist_name)
+            shitlist = csv_to_set(shitlist_name)
         except pandas.errors.EmptyDataError:
             print('Starting simulation afresh - continue?')
             input()
