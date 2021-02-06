@@ -5,7 +5,6 @@ from read_in_csv import *
 import os
 import pandas
 import random
-from read_list_of_cities_csv import *
 from write_functions import *
 
 # a list of stations which will yield many between-stations, i.e. the extrema of the network
@@ -72,14 +71,14 @@ def main():
 
     # if os.path.isfile(main_table + '') is False:
     data.update(betriebspunkt_to_dict(all_city_file_name))
-    data.update(read_list_of_cities(key_cities_name))
-    extrema.update(read_list_of_cities(extrema_csv))
-    typos.update(read_list_of_cities(typos_csv))
+    data.update(csv_to_empty_dict(key_cities_name))
+    extrema.update(csv_to_empty_dict(extrema_csv))
+    typos.update(csv_to_empty_dict(typos_csv))
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table) is True:
         try:
-            old_data = read_intermediate_data(main_table)
+            old_data = csv_to_dict(main_table)
             print("Adding old_data of " + str(len(old_data)) + " cities into data, which has " + str(len(data)) + " cities - ok?")
             data.update(old_data)
             shitlist = open_shitlist(shitlist_name)
@@ -89,7 +88,7 @@ def main():
             if os.path.isfile(main_table) is True: os.remove(main_table)
             if os.path.isfile(shitlist_name) is True: os.remove(shitlist_name)
             data.update(betriebspunkt_to_dict(all_city_file_name))
-            data.update(read_list_of_cities(key_cities_name))
+            data.update(csv_to_empty_dict(key_cities_name))
             if 'Zürich HB' in data: del data['Zürich HB']
     else:
         os.system("touch " + main_table)
@@ -167,11 +166,11 @@ def main():
     with open(extrema_csv, 'w') as extremafile:
         print(str(extrema))
         for item in extrema:
-            write_destination_line(item, extremafile)
+            write_destination_to_csv(item, extremafile)
             extremafile.flush()
     with open(typos_csv, 'w') as typosfile:
         for item in typos:
-            write_destination_line(item, typosfile)
+            write_destination_to_csv(item, typosfile)
             typosfile.flush()
 
 

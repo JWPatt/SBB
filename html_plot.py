@@ -15,7 +15,7 @@ import plotly.graph_objs as go
 
 intermediate_data_name = 'main_table.csv'
 
-sbb_data = read_intermediate_data(intermediate_data_name)
+sbb_data = csv_to_dict(intermediate_data_name)
 city = []
 lat_data = []
 lon_data = []
