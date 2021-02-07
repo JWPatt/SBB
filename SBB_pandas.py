@@ -11,8 +11,8 @@ def main():
     all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
     main_table_csv = 'output_csvs/main_table.csv'
     bad_destinations_csv = 'output_csvs/shitlist.csv'
-    extrema_csv = 'output_csvs/extrema.csv'
-    typos_csv = 'output_csvs/typos.csv'
+    extrema_destinations_csv = 'output_csvs/extrema.csv'
+    misspelled_destinations_csv = 'output_csvs/typos.csv'
     fresh_start = False
 
     if fresh_start:
@@ -22,14 +22,12 @@ def main():
         if os.path.isfile(bad_destinations_csv):
             os.system("rm " + bad_destinations_csv)
             os.system("touch " + bad_destinations_csv)
-        if os.path.isfile(extrema_csv):
-            os.system("rm " + extrema_csv)
-            os.system("touch " + extrema_csv)
-        if os.path.isfile(typos_csv):
-            os.system("rm " + typos_csv)
-            os.system("touch " + typos_csv)
-
-
+        if os.path.isfile(extrema_destinations_csv):
+            os.system("rm " + extrema_destinations_csv)
+            os.system("touch " + extrema_destinations_csv)
+        if os.path.isfile(misspelled_destinations_csv):
+            os.system("rm " + misspelled_destinations_csv)
+            os.system("touch " + misspelled_destinations_csv)
 
     # must use Manager queue here, or will not work
     manager = mp.Manager()
@@ -38,27 +36,26 @@ def main():
     print("Number of cores: " + str(mp.cpu_count()))
     pool = mp.Pool(2)
 
-    API_counter = 0
     duration_counter = 0
     data = manager.dict()
     old_data = {}
     bad_destinations = set()
-    typos = set()
-    extrema = set()
-    not_extrema = set()
+    misspelled_destinations = set()
+    extrema_destinations = set()
+    not_extrema_destinations = set()
 
     # if os.path.isfile(main_table + '') is False:
     data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
     data.update(io_func.csv_to_empty_dict(key_cities_csv))
-    extrema.update(io_func.csv_to_set(extrema_csv))
-    typos.update(io_func.csv_to_set(typos_csv))
-
+    extrema_destinations.update(io_func.csv_to_set(extrema_destinations_csv))
+    misspelled_destinations.update(io_func.csv_to_set(misspelled_destinations_csv))
 
     if 'Zürich HB' in data: del data['Zürich HB']
     if os.path.isfile(main_table_csv) is True:
         try:
             old_data = io_func.csv_to_dict(main_table_csv)
-            print("Adding old_data of " + str(len(old_data)) + " cities into data, which has " + str(len(data)) + " cities - ok?")
+            print("Adding old_data of {old_data} cities into data, which has {data} cities".format(
+                old_data=str(len(old_data)), data=str(len(data))))
             data.update(old_data)
             bad_destinations = io_func.csv_to_set(bad_destinations_csv)
         except pandas.errors.EmptyDataError:
@@ -76,10 +73,10 @@ def main():
     listener = pool.apply_async(listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
 
     for key in sorted(list(data), key=lambda x: 1):
-        if key in bad_destinations or key in typos:
+        if key in bad_destinations or key in misspelled_destinations:
             continue
         if data[key] is None:
-            extrema.add(key)
+            extrema_destinations.add(key)
             stack_counter += 1
             print('Adding ' + key + ' to Pool.')
             job = pool.apply_async(sbb_query_and_update, (key, data, q))
@@ -96,19 +93,19 @@ def main():
         print(destination, data_portion)
         if not data_portion:  # if it doesn't exist, it goes to bad_destinations
             bad_destinations.add(destination)
-            extrema.discard(destination)
+            extrema_destinations.discard(destination)
         else:
             for key in list(data_portion):
                 if data_portion[key] is None:
-                    not_extrema.add(key)
+                    not_extrema_destinations.add(key)
                     if key != destination:
-                        typos.add(key)  # the city name given is not the city name returned; is therefore a typo
-                        if destination not in not_extrema:
-                            extrema.add(destination)
+                        misspelled_destinations.add(key)  # the city name given is not the city name returned; is therefore a typo
+                        if destination not in not_extrema_destinations:
+                            extrema_destinations.add(destination)
                     del data_portion[key]
-                if key in extrema:
+                if key in extrema_destinations:
                     if destination != key:
-                        extrema.discard(key)  # if this key is not the final destination, it cannot be an extrema
+                        extrema_destinations.discard(key)  # if this key is not the final destination, it cannot be an extrema
             if data_portion:
                 q.put(data_portion)
     print ('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
@@ -118,8 +115,8 @@ def main():
     pool.close()
     pool.join()
 
-    io_func.write_destination_set_to_csv(extrema, extrema_csv)
-    io_func.write_destination_set_to_csv(typos, typos_csv)
+    io_func.write_destination_set_to_csv(extrema_destinations, extrema_destinations_csv)
+    io_func.write_destination_set_to_csv(misspelled_destinations, misspelled_destinations_csv)
     io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
 
 

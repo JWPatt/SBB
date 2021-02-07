@@ -1,3 +1,5 @@
+# they say using the "import *" syntax is bad practice, but idk in this case it would be nice...
+
 from .read_in_csv import betriebspunkt_csv_to_empty_dict
 from .read_in_csv import csv_to_dict
 from .read_in_csv import csv_to_empty_dict
