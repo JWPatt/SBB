@@ -6,7 +6,7 @@ import os
 def betriebspunkt_csv_to_empty_dict(file_name):
     data_portion = {}
     if os.path.isfile(file_name) and os.path.getsize(file_name) > 0:
-        data_portion = {key: None for key in (pd.read_csv(file_name, sep=',', encoding='utf-8')['Name'])}
+        data_portion = {key: None for key in (pd.read_csv(file_name, sep=',', encoding="ISO-8859-1")['Name'])}
     return data_portion
 
 

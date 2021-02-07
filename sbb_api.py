@@ -1,5 +1,5 @@
 import requests
-
+import time
 
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
@@ -11,7 +11,6 @@ def sbb_query_and_update(destination, data, q):
     data_portions = []
     data_portion = {}
     departure_time = []
-
     print('API query for ' + destination )
     response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2021-06-25&time=7:00&limit=3')
     jdata = response.json()
@@ -32,6 +31,7 @@ def sbb_query_and_update(destination, data, q):
         except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
             print("ERROR: API response is null - check the API URL: " + str(e))
+            print(jdata)
 
     for t in range(len(jdata['connections'])):
         try:
@@ -78,13 +78,17 @@ def sbb_query_and_update(destination, data, q):
                     if key not in output_data_portion or data_portions[t][key][2] < output_data_portion[key][2]:
                         output_data_portion[key] = data_portions[t][key]
     except (TypeError) as e:
-        print('TypeError: ' + str(e))
+        print('TypeError: ' + str(e) + " key is " + key + " destiatnion is " + destination)
+        # print(output_data_portion)
+        # print(data_portions)
+        # time.sleep(10)
 
     # if destination has a typo, create valid duration for both the typo name and corrected name
     # this prevents future searches of the typo'd name.
     if jdata['to'] is not None:
         if destination != jdata['to']['name']:
             destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
+
 
     return destination, data_portion
 
