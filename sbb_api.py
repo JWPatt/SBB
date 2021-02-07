@@ -28,15 +28,16 @@ def sbb_query_and_update(destination, data, q):
             #     print("ERROR: API response is null - check the destination name or API URL")
             #     return destination, {destination: None}
             # else:
-            #     data_portion[destination] = None
-        except (KeyError, IndexError, TypeError, UnboundLocalError):
+            data_portion[destination] = None  # important step for correctly catching misspelled destinations
+        except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
-            print("ERROR: API response is null - check the API URL")
+            print("ERROR: API response is null - check the API URL: " + str(e))
 
     for t in range(len(jdata['connections'])):
         try:
             jdata['connections'][t]['sections'][0]['journey']['passList'][0]['departureTimestamp']
-        except (KeyError, IndexError, TypeError, UnboundLocalError):
+        except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
+            print(str(e))
             present = False
         else:
             present = True
@@ -59,14 +60,14 @@ def sbb_query_and_update(destination, data, q):
                     dur = jdata['connections'][t]['sections'][i]['journey']['passList'][j]['arrivalTimestamp']-departure_time[t]
                     # print(station + ' ' + str(x_coord) + ' ' + str(y_coord) + ' ' + str(dur))
                     data_portion[station] = [x_coord, y_coord, dur]
-        except(KeyError):
-            print('Key Error')
-        except(IndexError):
-            print('Index Error')
-        except(TypeError):
-            print('Type Error')
-        except(UnboundLocalError):
-            print('Unbound Local Error')
+        except(KeyError) as e:
+            print('Key Error: ' + str(e))
+        except(IndexError) as e:
+            print('Index Error: ' + str(e))
+        except(TypeError) as e:
+            print('Type Error: ' + str(e))
+        except(UnboundLocalError) as e:
+            print('Unbound Local Error: ' + str(e))
         data_portions.append(data_portion)
 
     try:
@@ -76,8 +77,8 @@ def sbb_query_and_update(destination, data, q):
                 if key is not None:
                     if key not in output_data_portion or data_portions[t][key][2] < output_data_portion[key][2]:
                         output_data_portion[key] = data_portions[t][key]
-    except (TypeError):
-        print('TypeError, sbb_api_lookup_connection_multi')
+    except (TypeError) as e:
+        print('TypeError: ' + str(e))
 
     # if destination has a typo, create valid duration for both the typo name and corrected name
     # this prevents future searches of the typo'd name.

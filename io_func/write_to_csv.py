@@ -20,7 +20,7 @@ def write_destination_to_csv(destination, openfile):
 # take in a set of destination names and write to a file
 # used at the end of processing, to update extrema/shitlist/typos csv's
 def write_destination_set_to_csv(destination_set, file_name):
-    with open(file_name, 'w', encoding="ISO-8859-1") as file:
+    with open(file_name, 'w', encoding="utf-8") as file:
         for destination in destination_set:
             write_destination_to_csv(destination, file)
 

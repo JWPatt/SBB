@@ -4,6 +4,7 @@ import os
 import pandas
 import io_func
 from sbb_api import sbb_query_and_update
+from html_plot import make_html_map
 
 
 def main():
@@ -122,7 +123,7 @@ def main():
 
 def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
     '''listens for messages on the q, writes to open file. '''
-    with open(main_table_csv, 'w') as openfile:
+    with open(main_table_csv, 'w', encoding='utf-8') as openfile:
         # csv_writer = writer(openfile)
         for key in old_data:
             io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
@@ -148,3 +149,4 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
 
 if __name__ == "__main__":
     main()
+    make_html_map('output_csvs/main_table.csv')

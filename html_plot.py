@@ -11,34 +11,32 @@ def sec_to_hhmm(seconds):
     return str(hours) + ":" + str(minutes).zfill(2)
 
 
+def read_geojson(url):
+    with urllib.request.urlopen(url) as url:
+        jdata = json.loads(url.read().decode())
+    return jdata
+
+
 def make_html_map(path_to_data):
     intermediate_data_name = path_to_data
+
     sbb = pd.read_csv(intermediate_data_name,names=['city', 'lat', 'lon', 'duration'])
     sbb = sbb.round({'lat': 3, 'lon': 3})
-
     sbb['hovertext'] = sbb['duration'].apply(sec_to_hhmm)
 
-
-    # cap_max = int(input('Current maximum is ' + str(max(duration)) + '. Cap maximum at: '))
+    # cap the maximum duration which gets colored to maintain appropriate colors in majority of points
     cap_max = 60*60*8
     sbb.loc[sbb['duration'] > cap_max,'duration'] = cap_max
 
 
-    def read_geojson(url):
-        with urllib.request.urlopen(url) as url:
-            jdata = json.loads(url.read().decode())
-        return jdata
 
-    swiss_url = 'https://raw.githubusercontent.com/empet/Datasets/master/swiss-cantons.geojson'
-    jdata = read_geojson(swiss_url)
-    # print(jdata['features'][0].keys())
-    # print(jdata['features'][0]['properties'])
-    import pandas as pd
-
-    data_url = "https://raw.githubusercontent.com/empet/Datasets/master/Swiss-synthetic-data.csv"
-    df = pd.read_csv(data_url)
-    print(df.head())
-    mycustomdata = np.stack((df['canton-name'], df['2018']), axis=-1)
+    # swiss_url = 'https://raw.githubusercontent.com/empet/Datasets/master/swiss-cantons.geojson'
+    # jdata = read_geojson(swiss_url)
+    #
+    # data_url = "https://raw.githubusercontent.com/empet/Datasets/master/Swiss-synthetic-data.csv"
+    # df = pd.read_csv(data_url)
+    # print(df.head())
+    # mycustomdata = np.stack((df['canton-name'], df['2018']), axis=-1)
     title = 'Swiss Canton Choroplethmapbox'
 
     fig = go.Figure()
@@ -52,23 +50,14 @@ def make_html_map(path_to_data):
     #                                     marker_line_width=1))
 
     fig.add_trace(go.Scattermapbox(      # Scattermapbox on tiles, scattergeo on outline maps
-        lon = sbb['lon'],
-        lat = sbb['lat'],
-        mode = 'markers',
-        marker_color = sbb['duration'],
-        marker_size = 10,
+        lon=sbb['lon'],
+        lat=sbb['lat'],
+        mode='markers',
+        marker_color=sbb['duration'],
+        marker_size=10,
         text=sbb['city'],
-        hovertext = sbb['hovertext'],
-        # coloraxis="coloraxis"
-        # showlegend=True
+        hovertext=sbb['hovertext'],
     ))
-
-    # fig.add_trace(go.Scattergeo(      # choropleth on tiles, scattergeo on outline maps
-    #         lon = sbb['lon'],
-    #         lat = sbb['lat'],
-    #         mode = 'markers',
-    #         marker_color = sbb['duration'],
-    #         ))
 
     fig.update_layout(title_text=title,
                       title_x=0.5,
@@ -76,7 +65,8 @@ def make_html_map(path_to_data):
                       mapbox=dict(style='carto-positron',
                                   zoom=6.5,
                                   center={"lat": 46.8181877, "lon": 8.2275124},
-                                  ));
+                                  )
+                      )
 
     fig.show()
 
