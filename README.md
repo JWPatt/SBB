@@ -16,6 +16,12 @@ Currently, this is but a python script to be run locally. The goal is to turn th
 server does the querying each day to build a database of common origins/starting times, e.g. Zurich at 7 AM on a 
 Saturday (common among dayhikers).
 
+
+Next improvements to be made:
+1. ensure error handling is robust
+2. make project pip installable
+3. make more general by allowing user to input starting city/time 
+
 <!--
 ![](header.png)
 
