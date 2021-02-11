@@ -8,7 +8,13 @@ from html_plot import make_html_map
 
 
 def main():
+
+    if mp.cpu_count() < 2:
+        print('Function not set up for less than 2 threads! Terminating.')
+        return 0
+
     try:
+        # Load file names
         key_cities_csv = 'input_csvs/key_cities_sbb.csv'
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
         main_table_csv = 'output_csvs/main_table.csv'
@@ -144,6 +150,8 @@ def main():
             print("Bad destination list: added " + str(len(extrema_destinations) - n_extrema) + " destinations to list.")
             io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
 
+    return 1
+
 
 
 def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
@@ -177,7 +185,8 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
 
 if __name__ == "__main__":
     try:
-        main()
-        make_html_map('output_csvs/main_table.csv')
+        check = main()
+        if check:
+            make_html_map('output_csvs/main_table.csv')
     except KeyboardInterrupt or EOFError:
         print("Killed by user.")
