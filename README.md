@@ -8,19 +8,30 @@
 This program queries the SBB's API to gather information on journey times from a starting origin to the rest of the
 country. Given an origin and starting time, a map is built showing how long it takes to get to each other station.
 
+[![alt text](example_results/zurich_summer_saturday_0700.png)](https://www.github.com/JWPatt/SBB/example_results/zurich_summer_saturday_0700.html)
+
+
 SBB gives each user 1000 free API requests per day, but there are ~30,000 destinations in the network. 
 By gathering info on the intermediate stations along a path, we devise an algorithm to determine which destinations are
 end nodes on the network. Thus, we can gather information for most destinations with only 1000 queries.
+Currently, this is but a python script to be run locally and the API calls are the current bottleneck, 
+taking ~0.2 to 10 seconds each. 10 seconds is a long time, even when running in parallel. This requires investigation. 
 
-Currently, this is but a python script to be run locally. The goal is to turn this into a web application where the
-server does the querying each day to build a database of common origins/starting times, e.g. Zurich at 7 AM on a 
-Saturday (common among dayhikers).
+The goal is to turn this into a web application where the server does the querying each day to build a database of 
+common origins/starting times, e.g. Zurich at 7 AM on a Saturday (common among dayhikers).
 
 
 Next improvements to be made:
 1. ensure error handling is robust
 2. make project pip installable
-3. make more general by allowing user to input starting city/time 
+4. add ability to make map based on arrival time (rather than duration)
+
+
+Future directions for the project:
+1. create a database for various stating cities/times
+2. run continuously on a server, adding to the DB each day (via free API gets)
+3. have script email me progress reports
+4. develop web application to connect to this
 
 <!--
 ![](header.png)

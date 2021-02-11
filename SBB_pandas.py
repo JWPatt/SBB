@@ -7,7 +7,7 @@ from sbb_api import sbb_query_and_update
 from html_plot import make_html_map
 
 
-def main():
+def main(origin_details):
 
     if mp.cpu_count() < 2:
         print('Function not set up for less than 2 threads! Terminating.')
@@ -17,7 +17,7 @@ def main():
         # Load file names
         key_cities_csv = 'input_csvs/key_cities_sbb.csv'
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        main_table_csv = 'output_csvs/main_table.csv'
+        main_table_csv = 'example_results/main_table.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
@@ -56,7 +56,8 @@ def main():
         extrema_destinations.update(io_func.csv_to_set(extrema_destinations_csv))
         misspelled_destinations.update(io_func.csv_to_set(misspelled_destinations_csv))
 
-        if 'Zürich HB' in data: del data['Zürich HB']
+        if origin_details[0] in data:
+            del data[origin_details[0]]
         if os.path.isfile(main_table_csv) is True:
             try:
                 old_data = io_func.csv_to_dict(main_table_csv)
@@ -90,19 +91,19 @@ def main():
                 extrema_destinations.add(key)
                 stack_counter += 1
                 print('Adding ' + key + ' to Pool.')
-                job = pool.apply_async(sbb_query_and_update, (key, data, q))
+                job = pool.apply_async(sbb_query_and_update, (key, data, q, origin_details))
                 jobs.append(job)
-                if stack_counter == 500000:
+                if stack_counter == 50000:
                     break
-        print(str(stack_counter) + ' cities have been loaded onto the stack.')
-        print('Time to load stack: ' + str(time.time()-t_init) + ' seconds')
+        print('%d cities have been loaded onto the stack.' % stack_counter)
+        print('Time to load stack: %d seconds' % (time.time()-t_init))
 
         # collect results from the workers through the pool result queue
         t_init = time.time()
         for job in jobs:
             try:
                 destination, data_portion = job.get()
-                print(destination, data_portion)
+                # print(destination, data_portion)
                 if not data_portion:  # if it doesn't exist, it goes to bad_destinations
                     bad_destinations.add(destination)
                     extrema_destinations.discard(destination)
@@ -184,9 +185,13 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
 
 
 if __name__ == "__main__":
+    origin_city = 'Zurich HB'
+    origin_time = '7:00'
+    origin_date = '2021-06-25'
+    origin_details = [origin_city, origin_time, origin_date]
     try:
-        check = main()
-        if check:
-            make_html_map('output_csvs/main_table.csv')
+        success = main(origin_details)
+        if success:
+            make_html_map('output_csvs/main_table.csv', origin_details)
     except KeyboardInterrupt or EOFError:
         print("Killed by user.")

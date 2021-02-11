@@ -4,15 +4,19 @@ import time
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
-def sbb_query_and_update(destination, data, q):
+def sbb_query_and_update(destination, data, q, origin_details):
     if data[destination] is not None:
         return destination, {destination: data[destination]}
 
     data_portions = []
     data_portion = {}
     departure_time = []
-    print('API query for ' + destination )
-    response = requests.get('https://transport.opendata.ch/v1/connections?from=Zurich&to='+destination+'&date=2021-06-25&time=7:00&limit=3')
+    print('API query for %s... ' % destination, end='')
+    t_init = time.time()
+    response = requests.get('https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3'
+                            % (origin_details[0], destination, origin_details[2], origin_details[1]))
+    td_get = time.time() - t_init
+    print(' took %f seconds.' % td_get)
     jdata = response.json()
 
     if response.status_code != 200:
