@@ -8,7 +8,8 @@
 This program queries the SBB's API to gather information on journey times from a starting origin to the rest of the
 country. Given an origin and starting time, a map is built showing how long it takes to get to each other station.
 
-[![alt text](example_results/zurich_summer_saturday_0700.png)](https://www.github.com/JWPatt/SBB/example_results/zurich_summer_saturday_0700.html)
+Click anywhere on the image to view the interactive map.
+[![alt text](example_results/zurich_summer_saturday_0700.png)](https://jwpatt.github.io/SBB/)
 
 
 SBB gives each user 1000 free API requests per day, but there are ~30,000 destinations in the network. 
