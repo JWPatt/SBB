@@ -1,5 +1,7 @@
 import requests
 import time
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
@@ -12,9 +14,20 @@ def sbb_query_and_update(destination, data, q, origin_details):
     data_portion = {}
     departure_time = []
     # print('API query for %s... ' % destination)
+    time.sleep(1)
     t_init = time.time()
-    response = requests.get('https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3'
-                            % (origin_details[0], destination, origin_details[2], origin_details[1]))
+    session = requests.Session()
+    retry = Retry(connect=3, backoff_factor=0.5)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://37.120.239.152:3128', adapter)
+    session.mount('https://37.120.239.152:3128', adapter)
+    proxy = {
+        "https": 'https://37.120.239.150:3128',
+        "http": 'http://37.120.239.150:3128'
+    }
+    url = 'https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3' \
+          % (origin_details[0], destination, origin_details[2], origin_details[1])
+    response = requests.get(url)
     td_get = time.time() - t_init
     # print(' took %f seconds.' % td_get)
     jdata = response.json()
