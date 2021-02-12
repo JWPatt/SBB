@@ -6,7 +6,7 @@ import time
 # the worker to check before wasting a precious API query.
 def sbb_query_and_update(destination, data, q, origin_details):
     if data[destination] is not None:
-        return destination, {destination: data[destination]}
+        return destination, {destination: data[destination]}, 0
 
     data_portions = []
     data_portion = {}
@@ -23,7 +23,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
         print("ERROR: " + str(response.status_code) + ": " + str(jdata['errors'][0]['message']))
         if response.status_code == 429:
             input()
-        return destination, {destination: None}
+        return destination, {destination: None}, 0
     else:
         try:
             jdata['to']['name']

@@ -17,7 +17,7 @@ def main(origin_details):
     try:
         # Load file names
         key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
-        all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
+        all_city_file_csv = 'input_csvs/Betriebspunkt.csv'
         # main_table_csv = 'output_csvs/Zurich_HB_7:00_2021-06-25.csv'
         main_table_csv = io_func.database_loc(origin_details)
         bad_destinations_csv = 'output_csvs/shitlist.csv'
@@ -129,7 +129,7 @@ def main(origin_details):
             except Exception as e:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(exc_type, fname, exc_tb.tb_lineno, e)
+                # print(exc_type, fname, exc_tb.tb_lineno, e)
                 raise
 
         print ('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
@@ -161,7 +161,7 @@ def main(origin_details):
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(exc_type, fname, exc_tb.tb_lineno, e)
+        # print(exc_type, fname, exc_tb.tb_lineno, e)
         raise
 
     return 1
@@ -191,7 +191,7 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                         openfile.flush()
                         chain_counter += 1
                 duration_counter += chain_counter
-                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:>3}'.format(key,chain_counter,duration_counter,td_get))
+                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:0.2f>3} API response time'.format(key,chain_counter,duration_counter,td_get))
             except EOFError:
                 print("Ran out of free API requests")
                 return
