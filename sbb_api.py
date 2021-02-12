@@ -11,12 +11,12 @@ def sbb_query_and_update(destination, data, q, origin_details):
     data_portions = []
     data_portion = {}
     departure_time = []
-    print('API query for %s... ' % destination, end='')
+    # print('API query for %s... ' % destination)
     t_init = time.time()
     response = requests.get('https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3'
                             % (origin_details[0], destination, origin_details[2], origin_details[1]))
     td_get = time.time() - t_init
-    print(' took %f seconds.' % td_get)
+    # print(' took %f seconds.' % td_get)
     jdata = response.json()
 
     if response.status_code != 200:
@@ -94,7 +94,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
             destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
 
 
-    return destination, data_portion
+    return destination, data_portion, td_get
 
 
 

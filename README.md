@@ -24,7 +24,6 @@ common origins/starting times, e.g. Zurich at 7 AM on a Saturday (common among d
 
 Next improvements to be made:
 1. ensure error handling is robust
-2. make project pip installable
 4. add ability to make map based on arrival time (rather than duration)
 
 

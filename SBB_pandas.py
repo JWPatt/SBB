@@ -1,6 +1,7 @@
 import multiprocessing as mp
 import time
 import os
+import sys
 import pandas
 import io_func
 from sbb_api import sbb_query_and_update
@@ -15,9 +16,10 @@ def main(origin_details):
 
     try:
         # Load file names
-        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        main_table_csv = 'example_results/main_table.csv'
+        # main_table_csv = 'output_csvs/Zurich_HB_7:00_2021-06-25.csv'
+        main_table_csv = io_func.database_loc(origin_details)
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
@@ -40,7 +42,7 @@ def main(origin_details):
         # Load parallel processing tools
         manager = mp.Manager()
         q = manager.Queue()
-        pool = mp.Pool(mp.cpu_count())
+        pool = mp.Pool(2)
 
         duration_counter = 0
         data = manager.dict()
@@ -102,7 +104,7 @@ def main(origin_details):
         t_init = time.time()
         for job in jobs:
             try:
-                destination, data_portion = job.get()
+                destination, data_portion, td_get = job.get()
                 # print(destination, data_portion)
                 if not data_portion:  # if it doesn't exist, it goes to bad_destinations
                     bad_destinations.add(destination)
@@ -120,10 +122,15 @@ def main(origin_details):
                             if destination != key:
                                 extrema_destinations.discard(key)  # if this key is not the final destination, it cannot be an extrema
                     if data_portion:
-                        q.put(data_portion)
+                        q.put((data_portion, td_get))
             except EOFError:
                 print("Ran out of free API requests")
                 break
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno, e)
+                raise
 
         print ('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
@@ -151,6 +158,12 @@ def main(origin_details):
             print("Bad destination list: added " + str(len(extrema_destinations) - n_extrema) + " destinations to list.")
             io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
 
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno, e)
+        raise
+
     return 1
 
 
@@ -164,7 +177,7 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
 
         while 1:
             try:
-                data_portion = q.get()
+                (data_portion, td_get) = q.get()
                 chain_counter = 0
                 for key in list(data_portion):
                     if key not in data:
@@ -178,20 +191,31 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                         openfile.flush()
                         chain_counter += 1
                 duration_counter += chain_counter
-                print('API for ' + key + ' yielded ' + str(chain_counter) + ' new durations, for a total of ' + str(duration_counter))
+                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:>3}'.format(key,chain_counter,duration_counter,td_get))
             except EOFError:
                 print("Ran out of free API requests")
                 return
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                # print(exc_type, fname, exc_tb.tb_lineno, e)
+                raise
 
 
 if __name__ == "__main__":
-    origin_city = 'Zurich HB'
-    origin_time = '7:00'
-    origin_date = '2021-06-25'
-    origin_details = [origin_city, origin_time, origin_date]
+
+    # Enter city name with or without special characters (probably safer without)
+    # Enter time in HH:MM format (e.g. '13:10')
+    # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
+    origin_city = ['Zurich HB', 'Bern', 'Geneva']
+    origin_time = ['7:00','7:00','7:00']
+    origin_date = ['2021-06-25','2021-06-25','2021-06-25']
+    origin_details = [[origin_city[i], origin_time[i], origin_date[i]] for i in range(3)]
     try:
-        success = main(origin_details)
-        if success:
-            make_html_map('output_csvs/main_table.csv', origin_details)
+        for i in origin_details[:1]:
+            success = main(i)
+            if success:
+                data_csv = io_func.database_loc(i)
+                make_html_map(data_csv, i)
     except KeyboardInterrupt or EOFError:
         print("Killed by user.")
