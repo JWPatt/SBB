@@ -48,6 +48,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
         except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
             print("ERROR: API response is null - check the API URL: " + str(e))
+            return destination, {destination: None}, 0
 
     for t in range(len(jdata['connections'])):
         try:
@@ -100,7 +101,8 @@ def sbb_query_and_update(destination, data, q, origin_details):
                         output_data_portion[key] = data_portions[t][key]
         if destination not in output_data_portion:
             output_data_portion[destination]=None
-            destination = key  # luckily, the last used key is the effective destination
+            if key:
+                destination = key  # luckily, the last used key is the effective destination
     except (TypeError) as e:
         print('TypeError: ' + str(e) + " key is " + key + " destination is " + destination, t, output_data_portion)
         # print(output_data_portion)
@@ -109,9 +111,9 @@ def sbb_query_and_update(destination, data, q, origin_details):
 
     # if destination has a typo, create valid duration for both the typo name and corrected name
     # this prevents future searches of the typo'd name.
-    if jdata['to'] is not None:
-        if destination != jdata['to']['name']:
-            destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
+    # if jdata['to'] is not None:
+    #     if destination != jdata['to']['name']:
+    #         destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
 
 
     return destination, output_data_portion, td_get

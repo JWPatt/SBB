@@ -16,7 +16,7 @@ def main(origin_details):
 
     try:
         # Load file names
-        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
         all_city_file_csv = 'input_csvs/Betriebspunkt.csv'
         # main_table_csv = 'output_csvs/Zurich_HB_7:00_2021-06-25.csv'
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
@@ -122,8 +122,9 @@ def main(origin_details):
                                 extrema_destinations.add(destination)
                             del data_portion[key]
                         if key in extrema_destinations:
-                            if destination != key or data_portion[key] is None:
+                            if destination != key:
                                 extrema_destinations.discard(key)  # if this key is not the final destination, it cannot be an extrema
+                                extrema_destinations.add(destination)
                     if data_portion:
                         q.put((data_portion, td_get))
             except EOFError:
