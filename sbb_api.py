@@ -12,9 +12,9 @@ def sbb_query_and_update(destination, data, q, origin_details):
 
     data_portions = []
     data_portion = {}
+    input_destination = {}
     departure_time = []
     # print('API query for %s... ' % destination)
-    time.sleep(1)
     t_init = time.time()
     session = requests.Session()
     retry = Retry(connect=3, backoff_factor=0.5)
@@ -44,11 +44,10 @@ def sbb_query_and_update(destination, data, q, origin_details):
             #     print("ERROR: API response is null - check the destination name or API URL")
             #     return destination, {destination: None}
             # else:
-            data_portion[destination] = None  # important step for correctly catching misspelled destinations
+            input_destination[destination] = None  # important step for correctly catching misspelled destinations
         except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
             print("ERROR: API response is null - check the API URL: " + str(e))
-            print(jdata)
 
     for t in range(len(jdata['connections'])):
         try:
@@ -60,6 +59,11 @@ def sbb_query_and_update(destination, data, q, origin_details):
             present = True
         if present and not None:
             departure_time.append(jdata['connections'][t]['sections'][0]['journey']['passList'][0]['departureTimestamp'])
+            # station = jdata['connections'][t]['to']['station']['name']
+            # x_coord = jdata['connections'][t]['to']['station']['coordinate']['x']
+            # y_coord = jdata['connections'][t]['to']['station']['coordinate']['y']
+            # dur = jdata['connections'][t]['to']['arrivalTimestamp'] - departure_time[t]
+            # data_portion[station] = [x_coord, y_coord, dur]
 
         try:
             for i in range(0, len(jdata['connections'][t]['sections'])):
@@ -87,15 +91,18 @@ def sbb_query_and_update(destination, data, q, origin_details):
             print('Unbound Local Error: ' + str(e))
         data_portions.append(data_portion)
 
+    output_data_portion = {}
     try:
-        output_data_portion = {}
         for t in range(len(data_portions)):
             for key in data_portions[t]:
-                if key is not None:
-                    if key not in output_data_portion or data_portions[t][key][2] < output_data_portion[key][2]:
+                if key:
+                    if key not in output_data_portion or (data_portions[t][key][2] < output_data_portion[key][2]):
                         output_data_portion[key] = data_portions[t][key]
+        if destination not in output_data_portion:
+            output_data_portion[destination]=None
+            destination = key  # luckily, the last used key is the effective destination
     except (TypeError) as e:
-        print('TypeError: ' + str(e) + " key is " + key + " destiatnion is " + destination)
+        print('TypeError: ' + str(e) + " key is " + key + " destination is " + destination, t, output_data_portion)
         # print(output_data_portion)
         # print(data_portions)
         # time.sleep(10)
@@ -107,7 +114,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
             destination = jdata['to']['name']  # remove the typo from subseqeunt csvs
 
 
-    return destination, data_portion, td_get
+    return destination, output_data_portion, td_get
 
 
 
