@@ -2,8 +2,8 @@ import multiprocessing as mp
 import time
 import os
 import sys
-import pandas
 import io_func
+import core_func
 from sbb_api import sbb_query_and_update
 from html_plot import make_html_map
 
@@ -18,7 +18,7 @@ def main(origin_details):
         # Load file names
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'
@@ -68,7 +68,7 @@ def main(origin_details):
 
         jobs = []
         stack_counter = 0
-        listener = pool.apply_async(listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
+        listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
         t_init = time.time()
 
         for key in sorted(list(data), key=lambda x: 1):
@@ -89,29 +89,12 @@ def main(origin_details):
         t_init = time.time()
         for job in jobs:
             try:
+                # execute the SBB api get request and process the json
                 destination, data_portion, td_get = job.get()
-                # print(destination, data_portion)
-                if not data_portion:  # if it doesn't exist, it goes to bad_destinations
-                    bad_destinations.add(destination)
-                    extrema_destinations.discard(destination)
-                else:
-                    for key in list(data_portion):
-                        if data_portion[key] is None:
-                            # not_extrema_destinations.add(key)  # for cases where the end destination is actually None
-                            # extrema_destinations.discard(key)
-                            if key != destination:
-                                misspelled_destinations.add(key)  # the city name given is not the city name returned; is therefore a typo
-                                if key not in not_extrema_destinations:
-                                    extrema_destinations.add(destination)
-                            else:
-                                extrema_destinations.add(destination)
-                            del data_portion[key]
-                        if key in extrema_destinations:
-                            if destination != key:
-                                extrema_destinations.discard(key)  # if this key is not the final destination, it cannot be an extrema
-                                extrema_destinations.add(destination)
-                    if data_portion:
-                        q.put((destination, data_portion, td_get))
+
+                # compare the results with the previous results and sort data
+                core_func.process_data(destination, data_portion, td_get, output_sets, q)
+
             except EOFError:
                 print("Ran out of free API requests")
                 break
@@ -121,19 +104,20 @@ def main(origin_details):
                 print(exc_type, fname, exc_tb.tb_lineno, e)
                 raise
 
-        print ('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
+        print('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
         # now we are done, kill the listener
         q.put('kill')
         pool.close()
         pool.join()
 
-        print( "End node destination list: added " + str(len(extrema_destinations) - n_extrema) + " destinations to list.")
-        io_func.write_destination_set_to_csv(extrema_destinations, extrema_destinations_csv)
-        print("Misspelled destination list: added " + str(len(misspelled_destinations) - n_misspelled) + " destinations to list.")
-        io_func.write_destination_set_to_csv(misspelled_destinations, misspelled_destinations_csv)
-        print("Bad destination list: added " + str(len(bad_destinations) - n_bad) + " destinations to list.")
         io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
+        io_func.write_destination_set_to_csv(misspelled_destinations, misspelled_destinations_csv)
+        io_func.write_destination_set_to_csv(extrema_destinations, extrema_destinations_csv)
+        print("Added %s, %s, and %s to bad, misspelled, and extrema desntination csvs." % (
+            (len(bad_destinations) - n_bad),
+            (len(misspelled_destinations) - n_misspelled),
+            (len(extrema_destinations) - n_extrema)))
 
     except KeyboardInterrupt or EOFError:
         print("Killing process: writing extrema, misspelled, and bad destination csv's first.")
@@ -146,7 +130,6 @@ def main(origin_details):
         if bad_destinations:
             print("Bad destination list: added " + str(len(bad_destinations) - n_bad) + " destinations to list.")
             io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
-
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -156,62 +139,13 @@ def main(origin_details):
     return 1
 
 
-
-def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
-    '''listens for messages on the q, writes to open file. '''
-    with open(main_table_csv, 'w', encoding='utf-8') as openfile:
-        for key in old_data:
-            io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
-            openfile.flush()
-
-        while 1:
-            try:
-                gotten = q.get()
-                if gotten == 'kill':
-                    break
-                else:
-                    destination = gotten[0]
-                    data_portion = gotten[1]
-                    td_get = gotten[2]
-                # print('in while 1', data_portion, td_get)
-                chain_counter = 0
-                print(list(data_portion))
-                for key in list(data_portion):
-                    if data_portion[key] is None:
-                        continue
-                    else:
-                        if key not in data:
-                            data[key] = data_portion[key]
-                            io_func.write_data_line_to_open_csv(key, data[key], openfile)
-                            openfile.flush()
-                            chain_counter += 1
-                        elif data[key] is None:
-                            data[key] = data_portion[key]
-                            io_func.write_data_line_to_open_csv(key, data[key], openfile)
-                            openfile.flush()
-                            chain_counter += 1
-                duration_counter += chain_counter
-
-                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:0.2f} API response time'.format(destination,chain_counter,duration_counter,td_get))
-            except EOFError:
-                print("Ran out of free API requests")
-                return
-            except Exception as e:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(exc_type, fname, exc_tb.tb_lineno, e)
-                print(key,chain_counter,duration_counter,td_get)
-                raise
-
-
-
 if __name__ == "__main__":
 
     # Enter city name with or without special characters (probably safer without)
     # Enter time in HH:MM format (e.g. '13:10')
     # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
     origin_city = ['Zurich HB', 'Bern', 'Geneva']
-    origin_time = ['7:01','7:00','7:00']
+    origin_time = ['7:00','7:00','7:00']
     origin_date = ['2021-06-25','2021-06-25','2021-06-25']
     origin_details = [[origin_city[i], origin_time[i], origin_date[i]] for i in range(3)]
     try:

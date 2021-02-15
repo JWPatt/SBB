@@ -41,10 +41,6 @@ def sbb_query_and_update(destination, data, q, origin_details):
     else:
         try:
             jdata['to']['name']
-            # if jdata['to'] is None:
-            #     print("ERROR: API response is null - check the destination name or API URL")
-            #     return destination, {destination: None}
-            # else:
             input_destination[destination] = None  # important step for correctly catching misspelled destinations
         except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
@@ -61,19 +57,12 @@ def sbb_query_and_update(destination, data, q, origin_details):
             present = True
         if present and not None:
             departure_time.append(jdata['connections'][t]['sections'][0]['journey']['passList'][0]['departureTimestamp'])
-            # station = jdata['connections'][t]['to']['station']['name']
-            # x_coord = jdata['connections'][t]['to']['station']['coordinate']['x']
-            # y_coord = jdata['connections'][t]['to']['station']['coordinate']['y']
-            # dur = jdata['connections'][t]['to']['arrivalTimestamp'] - departure_time[t]
-            # data_portion[station] = [x_coord, y_coord, dur]
 
         try:
             for i in range(0, len(jdata['connections'][t]['sections'])):
                 if jdata['connections'][t]['sections'][i]['journey'] is None:
                     continue
                 for j in range(1, len(jdata['connections'][t]['sections'][i]['journey']['passList'])):
-                    # print("i is " +str(i)+", j is " + str(j))
-                    # print(jdata['connections'][t]['sections'][i]['journey']['passList'][j]['arrivalTimestamp'])
                     if jdata['connections'][t]['sections'][i]['journey']['passList'][j]['arrivalTimestamp'] is None:
                         continue
 
@@ -81,7 +70,6 @@ def sbb_query_and_update(destination, data, q, origin_details):
                     x_coord = jdata['connections'][t]['sections'][i]['journey']['passList'][j]['station']['coordinate']['x']
                     y_coord = jdata['connections'][t]['sections'][i]['journey']['passList'][j]['station']['coordinate']['y']
                     dur = jdata['connections'][t]['sections'][i]['journey']['passList'][j]['arrivalTimestamp']-departure_time[t]
-                    # print(station + ' ' + str(x_coord) + ' ' + str(y_coord) + ' ' + str(dur))
                     data_portion[station] = [x_coord, y_coord, dur]
                     true_destination = station
         except(KeyError) as e:
@@ -107,9 +95,6 @@ def sbb_query_and_update(destination, data, q, origin_details):
                 destination = true_destination
     except (TypeError) as e:
         print('TypeError: ' + str(e) + " key is " + key + " destination is " + destination, t, output_data_portion)
-        # print(output_data_portion)
-        # print(data_portions)
-        # time.sleep(10)
 
     # if destination has a typo, create valid duration for both the typo name and corrected name
     # this prevents future searches of the typo'd name.
