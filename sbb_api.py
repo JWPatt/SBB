@@ -13,6 +13,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
     data_portions = []
     data_portion = {}
     input_destination = {}
+    true_destination = ""
     departure_time = []
     # print('API query for %s... ' % destination)
     t_init = time.time()
@@ -82,6 +83,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
                     dur = jdata['connections'][t]['sections'][i]['journey']['passList'][j]['arrivalTimestamp']-departure_time[t]
                     # print(station + ' ' + str(x_coord) + ' ' + str(y_coord) + ' ' + str(dur))
                     data_portion[station] = [x_coord, y_coord, dur]
+                    true_destination = station
         except(KeyError) as e:
             print('Key Error: ' + str(e))
         except(IndexError) as e:
@@ -101,8 +103,8 @@ def sbb_query_and_update(destination, data, q, origin_details):
                         output_data_portion[key] = data_portions[t][key]
         if destination not in output_data_portion:
             output_data_portion[destination]=None
-            if key:
-                destination = key  # luckily, the last used key is the effective destination
+            if true_destination:
+                destination = true_destination
     except (TypeError) as e:
         print('TypeError: ' + str(e) + " key is " + key + " destination is " + destination, t, output_data_portion)
         # print(output_data_portion)

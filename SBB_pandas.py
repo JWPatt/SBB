@@ -16,14 +16,13 @@ def main(origin_details):
 
     try:
         # Load file names
-        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
-        all_city_file_csv = 'input_csvs/Betriebspunkt.csv'
-        # main_table_csv = 'output_csvs/Zurich_HB_7:00_2021-06-25.csv'
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
+        all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
-        extrema_destinations_csv = 'output_csvs/extrema.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
-        fresh_start = True
+        extrema_destinations_csv = 'output_csvs/extrema.csv'
+        fresh_start = False
 
         if fresh_start:
             if os.path.isfile(main_table_csv):
@@ -51,31 +50,17 @@ def main(origin_details):
         misspelled_destinations = set()
         extrema_destinations = set()
         not_extrema_destinations = set()
+        output_sets = [bad_destinations, misspelled_destinations, extrema_destinations, not_extrema_destinations]
 
-        # if os.path.isfile(main_table + '') is False:
+        old_data.update(io_func.csv_to_dict(main_table_csv))
+        print("Loading previous data of {old_data} cities.".format(old_data=str(len(old_data))))
         data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
         data.update(io_func.csv_to_empty_dict(key_cities_csv))
-        extrema_destinations.update(io_func.csv_to_set(extrema_destinations_csv))
-        misspelled_destinations.update(io_func.csv_to_set(misspelled_destinations_csv))
+        data.update(old_data)
 
-        if origin_details[0] in data:
-            del data[origin_details[0]]
-        if os.path.isfile(main_table_csv) is True:
-            try:
-                old_data = io_func.csv_to_dict(main_table_csv)
-                print("Adding old_data of {old_data} cities into data, which has {data} cities".format(
-                    old_data=str(len(old_data)), data=str(len(data))))
-                data.update(old_data)
-                bad_destinations = io_func.csv_to_set(bad_destinations_csv)
-            except pandas.errors.EmptyDataError:
-                if os.path.isfile(main_table_csv): os.remove(main_table_csv)
-                if os.path.isfile(bad_destinations_csv): os.remove(bad_destinations_csv)
-                data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
-                data.update(io_func.csv_to_empty_dict(key_cities_csv))
-                if 'Zürich HB' in data: del data['Zürich HB']
-        else:
-            os.system("touch " + main_table_csv)
-        print("Done loading input and old data.")
+        bad_destinations.update(io_func.csv_to_set(bad_destinations_csv))
+        misspelled_destinations.update(io_func.csv_to_set(misspelled_destinations_csv))
+        extrema_destinations.update(io_func.csv_to_set(extrema_destinations_csv))
 
         n_extrema = len(extrema_destinations)
         n_misspelled = len(misspelled_destinations)
@@ -83,8 +68,8 @@ def main(origin_details):
 
         jobs = []
         stack_counter = 0
-        t_init = time.time()
         listener = pool.apply_async(listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
+        t_init = time.time()
 
         for key in sorted(list(data), key=lambda x: 1):
             if key in bad_destinations or key in misspelled_destinations:
@@ -126,7 +111,7 @@ def main(origin_details):
                                 extrema_destinations.discard(key)  # if this key is not the final destination, it cannot be an extrema
                                 extrema_destinations.add(destination)
                     if data_portion:
-                        q.put((data_portion, td_get))
+                        q.put((destination, data_portion, td_get))
             except EOFError:
                 print("Ran out of free API requests")
                 break
@@ -185,10 +170,12 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                 if gotten == 'kill':
                     break
                 else:
-                    data_portion = gotten[0]
-                    td_get = gotten[1]
+                    destination = gotten[0]
+                    data_portion = gotten[1]
+                    td_get = gotten[2]
                 # print('in while 1', data_portion, td_get)
                 chain_counter = 0
+                print(list(data_portion))
                 for key in list(data_portion):
                     if data_portion[key] is None:
                         continue
@@ -204,7 +191,8 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                             openfile.flush()
                             chain_counter += 1
                 duration_counter += chain_counter
-                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:0.2f} API response time'.format(key,chain_counter,duration_counter,td_get))
+
+                print('{:<30} | {:>3} new durations  | {:>6} total durations  |  {:0.2f} API response time'.format(destination,chain_counter,duration_counter,td_get))
             except EOFError:
                 print("Ran out of free API requests")
                 return
@@ -223,7 +211,7 @@ if __name__ == "__main__":
     # Enter time in HH:MM format (e.g. '13:10')
     # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
     origin_city = ['Zurich HB', 'Bern', 'Geneva']
-    origin_time = ['7:00','7:00','7:00']
+    origin_time = ['7:01','7:00','7:00']
     origin_date = ['2021-06-25','2021-06-25','2021-06-25']
     origin_details = [[origin_city[i], origin_time[i], origin_date[i]] for i in range(3)]
     try:
