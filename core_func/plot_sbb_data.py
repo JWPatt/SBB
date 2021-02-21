@@ -1,8 +1,8 @@
+# plot the data without plotly (obsolete, but worth keeping around)
+
 import matplotlib.pyplot as plt
 from io_func.read_in_csv import *
 
-# with open('saved_sbb_table.txt', 'r') as file:
-#     sbb_data = json.load(file)
 
 intermediate_data_name = 'Zurich_HB_7:00_2021-06-25.csv'
 

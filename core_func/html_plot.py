@@ -1,7 +1,7 @@
-import numpy as np
 import pandas as pd
 import json
 import urllib.request
+import plotly
 import plotly.graph_objs as go
 
 
@@ -67,13 +67,18 @@ def make_html_map(path_to_data, origin_details):
                       mapbox=dict(style='carto-positron',
                                   zoom=6.75,
                                   center={"lat": 46.8181877, "lon": 8.2275124},
-                                  )
+                                  ),
+                      height=800
                       )
 
-    fig.show()
+    # fig.show()
 
     # fig.write_html("example_results/zurich_summer_saturday_0700.html",include_mathjax = False)
+    fig.write_html("templates/output_map.html", include_mathjax=False)
+
+    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return graphJSON
 
 
 if __name__ == "__main__":
-    make_html_map('example_results/Zurich_HB_7:00_2021-06-25.csv', ['Zurich HB', '7:00', '2021-06-25'])
+    make_html_map('../example_results/Zurich_HB_7:00_2021-06-25.csv', ['Zurich HB', '7:00', '2021-06-25'])

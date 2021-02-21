@@ -4,7 +4,7 @@ import os
 import sys
 import io_func
 import core_func
-from html_plot import make_html_map
+from core_func.sbb_api import sbb_query_and_update
 
 
 def main(origin_details):
@@ -136,24 +136,3 @@ def main(origin_details):
         raise
 
     return 1
-
-
-if __name__ == "__main__":
-
-    # Enter city name with or without special characters (probably safer without)
-    # Enter time in HH:MM format (e.g. '13:10')
-    # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
-    origin_city = ['Zurich HB', 'Bern', 'Geneva']
-    origin_time = ['7:00','7:00','7:00']
-    origin_date = ['2021-06-25','2021-06-25','2021-06-25']
-    origin_details = [[origin_city[i], origin_time[i], origin_date[i]] for i in range(3)]
-    try:
-        for i in origin_details[:1]:
-            success = main(i)
-            if success:
-                data_csv = io_func.database_loc('output_csvs/', i)
-                make_html_map(data_csv, i)
-    except KeyboardInterrupt or EOFError:
-        print("Killed by user.")
-    except:
-        raise
