@@ -32,20 +32,24 @@ def sbb_query_and_update(destination, data, q, origin_details):
     td_get = time.time() - t_init
     # print(' took %f seconds.' % td_get)
     jdata = response.json()
-
+    print(jdata)
     if response.status_code != 200:
         print("ERROR: " + str(response.status_code) + ": " + str(jdata['errors'][0]['message']))
         if response.status_code == 429:
             input()
-        return destination, {destination: None}, 0
+        return destination, {}, 0
     else:
         try:
             jdata['to']['name']
             input_destination[destination] = None  # important step for correctly catching misspelled destinations
         except (KeyError, IndexError, TypeError, UnboundLocalError) as e:
             present = False
-            print("ERROR: API response is null - check the API URL: " + str(e))
-            return destination, {destination: None}, 0
+            print("ERROR: API response is null for %s - check the API URL: %s" %(destination, str(e)))
+            return destination, {}, 0
+
+    if not jdata['connections']:
+        print("Bad destination: %s" % (destination))
+        return destination, {}, 0
 
     for t in range(len(jdata['connections'])):
         try:
@@ -170,3 +174,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
 
 
 """
+
+if __name__ == "__main__":
+    dest, data, idk = (sbb_query_and_update("Hoch-Ybrig", {"Hoch-Ybrig":None}, "q", ['Zurich HB', '7:00', '2021-06-25']))
+

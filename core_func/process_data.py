@@ -13,11 +13,10 @@ def process_data(destination, data_portion, td_get, output_sets, q):
     if not data_portion:  # if it doesn't exist, it goes to bad_destinations
         output_sets[0].add(destination)  # bad_destinations
         output_sets[2].discard(destination)  # extrema_destinations
+        print("bad dest")
     else:
         for key in list(data_portion):
             if data_portion[key] is None:
-                # not_extrema_destinations.add(key)  # for cases where the end destination is actually None
-                # extrema_destinations.discard(key)
                 if key != destination:
                     output_sets[1].add(key)  # misspelled_destinations
                     if key not in output_sets[3]:  # not_extrema_destinations
@@ -35,8 +34,10 @@ def process_data(destination, data_portion, td_get, output_sets, q):
     return 0
 
 
-# Listener thread remains here and catches new data and writes it continuously
+# Listener thread remains here and catches new data and writes it continuously.
 # Is it necessary? No, but I wanted to implement it and it's kind of fun.
+# It is even less necessary if using a database (rather than local csvs) or a tool to catch errors
+# and ensure data output, even when the code fails.
 
 def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
     with open(main_table_csv, 'w', encoding='utf-8') as openfile:
@@ -82,3 +83,6 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                 print(exc_type, fname, exc_tb.tb_lineno, e)
                 print(key, chain_counter, duration_counter, td_get)
                 raise
+
+if __name__ == "__main__":
+    process_data("Hermance, douane", {}, 0, [set(), set(), set(), set()], 'q')
