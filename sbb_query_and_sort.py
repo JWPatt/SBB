@@ -4,7 +4,6 @@ import os
 import sys
 import io_func
 import core_func
-from sbb_api import sbb_query_and_update
 from html_plot import make_html_map
 
 
