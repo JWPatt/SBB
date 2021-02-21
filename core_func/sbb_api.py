@@ -27,12 +27,11 @@ def sbb_query_and_update(destination, data, q, origin_details):
         "http": 'http://37.120.239.150:3128'
     }
     url = 'https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3' \
-          % (origin_details[0], destination, origin_details[2], origin_details[1])
+          % (origin_details[0], destination, origin_details[1], origin_details[2])
     response = requests.get(url)
     td_get = time.time() - t_init
     # print(' took %f seconds.' % td_get)
     jdata = response.json()
-    print(jdata)
     if response.status_code != 200:
         print("ERROR: " + str(response.status_code) + ": " + str(jdata['errors'][0]['message']))
         if response.status_code == 429:

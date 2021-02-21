@@ -17,7 +17,7 @@ def main(origin_details):
         # Load file names
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'
@@ -67,7 +67,8 @@ def main(origin_details):
 
         jobs = []
         stack_counter = 0
-        listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter, old_data, q,))
+        listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
+                                                                 old_data, origin_details, q,))
         t_init = time.time()
 
         for key in sorted(list(data), key=lambda x: 1):

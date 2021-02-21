@@ -1,6 +1,7 @@
 import io_func
 import core_func
 from flask import Flask, render_template
+from pymongo import MongoClient
 
 
 app = Flask(__name__)
@@ -12,9 +13,9 @@ def home():
     # Enter time in HH:MM format (e.g. '13:10')
     # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
     origin_city = ['Zurich HB', 'Bern', 'Geneva']
-    origin_time = ['7:00', '7:00', '7:00']
     origin_date = ['2021-06-25', '2021-06-25', '2021-06-25']
-    origin_details = [[origin_city[i], origin_time[i], origin_date[i]] for i in range(3)]
+    origin_time = ['7:00', '7:00', '7:00']
+    origin_details = [[origin_city[i], origin_date[i], origin_time[i]] for i in range(3)]
     try:
         for i in origin_details[:1]:
             success = core_func.main(i)

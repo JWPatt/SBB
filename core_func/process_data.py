@@ -39,11 +39,13 @@ def process_data(destination, data_portion, td_get, output_sets, q):
 # It is even less necessary if using a database (rather than local csvs) or a tool to catch errors
 # and ensure data output, even when the code fails.
 
-def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
+def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_details, q):
     with open(main_table_csv, 'w', encoding='utf-8') as openfile:
         for key in old_data:
             io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
             openfile.flush()
+
+        mgdb = io_func.MongodbHandler("127.0.0.1:27017", "SBB_time_map", origin_details)
 
         while 1:
             try:
@@ -64,11 +66,13 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, q):
                             data[key] = data_portion[key]
                             io_func.write_data_line_to_open_csv(key, data[key], openfile)
                             openfile.flush()
+                            mgdb.write_data_line_to_mongodb(key, data[key])
                             chain_counter += 1
                         elif data[key] is None:
                             data[key] = data_portion[key]
                             io_func.write_data_line_to_open_csv(key, data[key], openfile)
                             openfile.flush()
+                            mgdb.write_data_line_to_mongodb(key, data[key])
                             chain_counter += 1
                 duration_counter += chain_counter
 
