@@ -17,7 +17,7 @@ def main(origin_details):
         # Load file names
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'
@@ -92,8 +92,13 @@ def main(origin_details):
                 # execute the SBB api get request and process the json
                 destination, data_portion, td_get = job.get()
 
-                # compare the results with the previous results and sort data
-                core_func.process_data(destination, data_portion, td_get, output_sets, q)
+                #
+                if not destination and not data_portion:
+                    print("Ran out of free API requests")
+                    break
+                else:
+                    # compare the results with the previous results and sort data
+                    core_func.process_data(destination, data_portion, td_get, output_sets, q)
 
             except EOFError:
                 print("Ran out of free API requests")

@@ -17,14 +17,14 @@ def sbb_query_and_update(destination, data, q, origin_details):
     departure_time = []
     # print('API query for %s... ' % destination)
     t_init = time.time()
-    session = requests.Session()
-    retry = Retry(connect=3, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://37.120.239.152:3128', adapter)
-    session.mount('https://37.120.239.152:3128', adapter)
-    proxy = {
-        "https": 'https://37.120.239.150:3128',
-        "http": 'http://37.120.239.150:3128'
+    # session = requests.Session()
+    retry = Retry(connect=1, backoff_factor=0.5)
+    # adapter = HTTPAdapter(max_retries=retry)
+    # session.mount('http://37.120.239.152:3128', adapter)
+    # session.mount('https://37.120.239.152:3128', adapter)
+    proxies = {
+        "http": 'http://84.17.51.233:3128',
+        "https": 'https://84.17.51.233:3128',
     }
     url = 'https://transport.opendata.ch/v1/connections?from=%s&to=%s&date=%s&time=%s&limit=3' \
           % (origin_details[0], destination, origin_details[1], origin_details[2])
@@ -35,7 +35,7 @@ def sbb_query_and_update(destination, data, q, origin_details):
     if response.status_code != 200:
         print("ERROR: " + str(response.status_code) + ": " + str(jdata['errors'][0]['message']))
         if response.status_code == 429:
-            input()
+            exit()
         return destination, {}, 0
     else:
         try:

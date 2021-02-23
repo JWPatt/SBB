@@ -11,9 +11,13 @@ import os
 
 def process_data(destination, data_portion, td_get, output_sets, q):
     if not data_portion:  # if it doesn't exist, it goes to bad_destinations
-        output_sets[0].add(destination)  # bad_destinations
-        output_sets[2].discard(destination)  # extrema_destinations
-        print("bad dest")
+        if not destination:
+            print("Exceeded API call limit.")
+            exit()
+        else:
+            output_sets[0].add(destination)  # bad_destinations
+            output_sets[2].discard(destination)  # extrema_destinations
+            print("API call resulted in a bad destination: " + destination)
     else:
         for key in list(data_portion):
             if data_portion[key] is None:
@@ -45,7 +49,7 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_de
             io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
             openfile.flush()
 
-        mgdb = io_func.MongodbHandler("127.0.0.1:27017", "SBB_time_map", origin_details)
+        mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
 
         while 1:
             try:
@@ -89,4 +93,4 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_de
                 raise
 
 if __name__ == "__main__":
-    process_data("Hermance, douane", {}, 0, [set(), set(), set(), set()], 'q')
+    process_data("Bern", {"Bern":1}, 0, [set(), set(), set(), set()], 'q')
