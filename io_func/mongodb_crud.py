@@ -11,6 +11,12 @@ class MongodbHandler:
         self.date = ''
         self.time = ''
 
+        self.origins = []
+        for key in self.db_tree():
+            self.origins.append(key)
+
+        self.collections = self.db.list_collection_names()
+
     @classmethod
     def init_and_set_col(cls, url, database_name, origin_details):
         mgdb = cls(url, database_name)

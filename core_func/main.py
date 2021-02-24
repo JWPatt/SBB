@@ -17,7 +17,7 @@ def main(origin_details):
         # Load file names
         main_table_csv = io_func.database_loc('output_csvs/', origin_details)
         all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        key_cities_csv = 'input_csvs/key_cities_sbb.csv'
+        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
         bad_destinations_csv = 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = 'output_csvs/typos.csv'
         extrema_destinations_csv = 'output_csvs/extrema.csv'

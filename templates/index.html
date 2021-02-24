@@ -5,9 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=2.0">
     <title>Document</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <!--    Index-->
+<form class="originSelection" method="POST" action="/drop">
+<!--   <select class="teamForm" id="teamDropdownSelector" type="text" name="teamDropdown" placeholder="Select A Team">-->
+<!--        <option disabled selected>Select a game</option>-->
+<!--        <option id="WatfordVSManchester Utd" value="">Watford VS Manchester Utd</option>-->
+<!--   </select>-->
+    <select name= origin_cities method="GET" action="/drop">
+        {% for city in origin_cities %}
+        <option value= "{{city}}" SELECTED>{{city}}</option>"
+        {% endfor %}
+    </select>
+
+   <input class="btn" type="submit" value="submit">
+</form>
+
+<!--<form name="Item_1" action="/drop" method="POST" onchange="this.form.submit()">-->
+<!--    <label for="exampleFormControlFile2">Choose colour</label>-->
+<!--        <select name= colours method="GET" action="/">-->
+<!--            {% for colour in colours %}-->
+<!--            <option value= "{{colour}}" SELECTED>{{colour}}</option>"-->
+<!--            {% endfor %}-->
+<!--        </select>-->
+<!--    </select>-->
+<!--</form>-->
+<script>
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function myFunction() {
+  document.getElementById("myDropdown").classList.toggle("show");
+}
+
+function filterFunction() {
+  var input, filter, ul, li, a, i;
+  input = document.getElementById("myInput");
+  filter = input.value.toUpperCase();
+  div = document.getElementById("myDropdown");
+  a = div.getElementsByTagName("a");
+  for (i = 0; i < a.length; i++) {
+    txtValue = a[i].textContent || a[i].innerText;
+    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+      a[i].style.display = "";
+    } else {
+      a[i].style.display = "none";
+    }
+  }
+}
+</script>
     <div id="myPlot"></div>
 </body>
 <script>
