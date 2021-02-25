@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from pprint import pprint
 import pandas as pd
+import io_func
 
 
 class MongodbHandler:
@@ -31,8 +32,8 @@ class MongodbHandler:
         self.time = getattr(self.date, origin_details[2].replace(':', '_'))  # Travel time
 
     def write_data_line_to_mongodb(self, destination, data_list):
-        self.time.insert_one({"destination": destination, "travel_time": data_list[0],
-                              "x_coord": data_list[1], "y_coord": data_list[2]})
+        self.time.insert_one({"destination": destination, "lon": data_list[1],
+                              "lat": data_list[2], "travel_time": data_list[0]})
 
     # Display hierarchy of database destinations, dates, and times
     # Will be useful to show users which queries have results already (instead of waiting for new queries)
@@ -50,11 +51,28 @@ class MongodbHandler:
                     tree[col[0]][col[1]][col[2]] = num_pts
         return tree
 
+    # Get data from db given a destination, date, and time
+    def get_data(self, origin_details=None):
+        if origin_details is None:
+            if self.time == '':
+                print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+                input()
+            else:
+                data = list(self.time.find())
+        else:
+            col = io_func.mongodb_loc(origin_details)
+            print(self.time)
+            data_ = getattr(self.db, col)
+            data = list(data_.find())
+
+        return data
+
 
 
 if __name__ == "__main__":
-    handler = MongodbHandler("127.0.0.1:27017", "SBB_time_map", ["test","test","test2"])
-    pprint(handler.db_tree())
+    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:01'])
+    # pprint(handler.db_tree())
+    pprint (len(handler.get_data()))
 
     # ['Zurich HB', '7:00', '2021-06-25']
 

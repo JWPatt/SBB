@@ -35,18 +35,17 @@ def home():
     origin_details = [[origin_city[i], origin_date[i], origin_time[i]] for i in range(3)]
 
     origin_details = flask.request.form.get("origin_cities").split(".")
-    # origin_details[0] = origin_details[0].replace("_"," ")
-    # origin_details[1] = origin_details[1].replace("_","-")
-    # origin_details[2] = origin_details[2].replace("_",":")
+    origin_details[0] = origin_details[0].replace("_"," ")
+    origin_details[1] = origin_details[1].replace("_","-")
+    origin_details[2] = origin_details[2].replace("_",":")
     print(origin_details)
     try:
-        for i in origin_details[:1]:
-            success = core_func.main(i)
-            if success:
-                data_csv = io_func.database_loc('output_csvs/', i)
-                plotly_map = core_func.make_html_map(data_csv, i)
+        success = core_func.main(origin_details)
+        if success:
+            data_csv = io_func.database_loc('output_csvs/', origin_details)
+            plotly_map = core_func.make_html_map(data_csv, origin_details)
 
-                # return render_template("output_map.html")  # stand-alone, static plotly map
+            # return render_template("output_map.html")  # stand-alone, static plotly map
         return render_template("index.html", origin_cities=mgdb.collections, graphJSON=plotly_map)  # via json-ified plotly
     except KeyboardInterrupt or EOFError:
         print("Killed by user.")
