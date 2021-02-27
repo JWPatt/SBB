@@ -5,9 +5,10 @@ import sys
 import io_func
 import core_func
 from core_func.sbb_api import sbb_query_and_update
+from pprint import pprint
 
 
-def main(origin_details):
+def primary(origin_details):
 
     if mp.cpu_count() < 2:
         print('Function not set up for less than 2 threads! Terminating.')
@@ -15,12 +16,16 @@ def main(origin_details):
 
     try:
         # Load file names
-        main_table_csv = io_func.database_loc('output_csvs/', origin_details)
-        all_city_file_csv = 'input_csvs/Betriebspunkt_short.csv'
-        key_cities_csv = 'input_csvs/key_cities_sbb_short.csv'
-        bad_destinations_csv = 'output_csvs/shitlist.csv'
-        misspelled_destinations_csv = 'output_csvs/typos.csv'
-        extrema_destinations_csv = 'output_csvs/extrema.csv'
+        dir_prefix = ''
+        if __name__ == '__main__':
+            dir_prefix = '../'
+
+        main_table_csv = dir_prefix + io_func.database_loc('output_csvs/', origin_details)
+        all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt.csv'
+        key_cities_csv = dir_prefix + 'input_csvs/key_cities_sbb.csv'
+        bad_destinations_csv = dir_prefix + 'output_csvs/shitlist.csv'
+        misspelled_destinations_csv = dir_prefix + 'output_csvs/typos.csv'
+        extrema_destinations_csv = dir_prefix + 'output_csvs/extrema.csv'
         fresh_start = False
 
         if fresh_start:
@@ -70,6 +75,18 @@ def main(origin_details):
         listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
                                                                  old_data, origin_details, q,))
         t_init = time.time()
+
+        prefix = 'https://timetable.search.ch/api/route.json?from=Bern'
+        suffix = '&one_to_many=1'
+        body = ''
+        counter = 0
+        for key in sorted(list(data), key=lambda x: 1)[0:5]:
+            body = body + '&to[' + str(counter) + ']=' + key
+            counter += 1
+        url = prefix + body + suffix
+        print(url)
+        input()
+
 
         for key in sorted(list(data), key=lambda x: 1):
             if key in bad_destinations or key in misspelled_destinations:
@@ -142,3 +159,8 @@ def main(origin_details):
         raise
 
     return 1
+
+
+if __name__ =="__main__":
+    origin_details = ['Zurich HB', '7:01', '2021-06-25']
+    primary(origin_details)

@@ -40,7 +40,7 @@ def home():
     origin_details[2] = origin_details[2].replace("_",":")
     print(origin_details)
     try:
-        success = core_func.main(origin_details)
+        success = core_func.primary(origin_details)
         if success:
             data_csv = io_func.database_loc('output_csvs/', origin_details)
             plotly_map = core_func.make_html_map(data_csv, origin_details)

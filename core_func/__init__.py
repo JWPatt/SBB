@@ -4,5 +4,5 @@ from .process_data import process_data
 from .process_data import listen_and_write
 from .sbb_api import sbb_query_and_update
 from .html_plot import make_html_map
-from .main import main
+from .main import primary
 
