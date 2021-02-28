@@ -31,7 +31,7 @@ def home():
 
     origin_city = ['Zurich HB', 'Bern', 'Geneva']
     origin_date = ['2021-06-25', '2021-06-25', '2021-06-25']
-    origin_time = ['7:00', '7:00', '7:00']
+    origin_time = ['7:02', '7:00', '7:00']
     origin_details = [[origin_city[i], origin_date[i], origin_time[i]] for i in range(3)]
 
     origin_details = flask.request.form.get("origin_cities").split(".")
@@ -40,7 +40,8 @@ def home():
     origin_details[2] = origin_details[2].replace("_",":")
     print(origin_details)
     try:
-        success = core_func.primary(origin_details)
+        mgdb.set_col(origin_details)
+        success = core_func.primary(origin_details, mgdb)
         if success:
             data_csv = io_func.database_loc('output_csvs/', origin_details)
             plotly_map = core_func.make_html_map(data_csv, origin_details)

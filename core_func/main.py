@@ -9,7 +9,7 @@ from core_func.sbb_api_2 import sbb_query_and_update_2
 from pprint import pprint
 
 
-def primary(origin_details):
+def primary(origin_details, mgdb):
 
     if mp.cpu_count() < 2:
         print('Function not set up for less than 2 threads! Terminating.')
@@ -72,22 +72,20 @@ def primary(origin_details):
         n_bad = len(bad_destinations)
 
         jobs = []
-        stack_counter = 0
-        listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
-                                                                 old_data, origin_details, q,))
         t_init = time.time()
         data_list = list(data)
 
-        job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
-        jobs.append(job)
-        # collect results from the workers through the pool result queue
-        t_init = time.time()
-        for job in jobs:
-            data_portion, td_get = job.get()
-            pprint(data_portion)
+        # job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
+        # jobs.append(job)
+        # # collect results from the workers through the pool result queue
+        # t_init = time.time()
+        # for job in jobs:
+        #     data_portion, td_get = job.get()
+        #     pprint(data_portion)
 
-        input()
+        data_portion, td_get = sbb_query_and_update_2(data_list,'',origin_details)
 
+        mgdb.write_data_dict_of_dict(data_portion)
 
         print('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
@@ -125,5 +123,10 @@ def primary(origin_details):
 
 
 if __name__ =="__main__":
-    origin_details = ['Zurich HB', '2021-06-25', '7:01']
-    primary(origin_details)
+    origin_details = ['Zurich HB', '2021-06-25', '7:02']
+    mgdb = io_func.MongodbHandler("127.0.0.1:27017", "SBB_time_map")
+    mgdb.set_col(['Zurich HB', '2021-06-25', '7:01'])
+
+    t_init = time.time()
+    primary(origin_details, mgdb)
+    print(time.time() - t_init)

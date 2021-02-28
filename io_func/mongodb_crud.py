@@ -31,9 +31,42 @@ class MongodbHandler:
         self.date = getattr(self.dest, origin_details[1].replace('-', '_'))  # Travel date
         self.time = getattr(self.date, origin_details[2].replace(':', '_'))  # Travel time
 
-    def write_data_line_to_mongodb(self, destination, data_list):
-        self.time.insert_one({"destination": destination, "lon": data_list[1],
-                              "lat": data_list[2], "travel_time": data_list[0]})
+    def write_data_line_to_mongodb(self, data_dict):
+        # self.time.insert_one({"destination": destination, "lon": data_list[1],
+        #                       "lat": data_list[2], "travel_time": data_list[0]})
+
+        # data_dict = {'arrival': 1624603860.0,
+        #               'departure': 1624597320.0,
+        #               'destination': 'Interlaken Wwesttttt',
+        #               'endnode': 0,
+        #               'intermediate_stations': 2,
+        #               'lat': 46.682623,
+        #               'lon': 7.851453,
+        #               'num_transfers': 1,
+        #               'travel_time': 16540.0}
+
+        if self.time == '':
+            print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+            input()
+        elif 'destination' in data_dict:
+            if self.time.count_documents({'destination': data_dict['destination']}) == 0:
+                pprint('adding entry')
+                pprint(self.time.insert_one(data_dict))
+            elif self.time.count_documents({'destination': data_dict['destination']}) == 1:
+                pprint('doing update')
+                self.time.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
+            elif self.time.count_documents({'destination': data_dict['destination']}) > 1:
+                pprint('deleting extras, keeping the fastest')
+                fastest_entry = list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
+                self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
+                self.time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
+
+
+    def write_data_dict_of_dict(self,data_dict_of_dict):
+        for key in data_dict_of_dict:
+            self.write_data_line_to_mongodb(data_dict_of_dict[key])
+
+
 
     # Display hierarchy of database destinations, dates, and times
     # Will be useful to show users which queries have results already (instead of waiting for new queries)
@@ -58,7 +91,10 @@ class MongodbHandler:
                 print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
                 input()
             else:
+                print('here')
                 data = list(self.time.find())
+                print(data)
+                input()
         else:
             col = io_func.mongodb_loc(origin_details)
             print(self.time)
@@ -70,9 +106,10 @@ class MongodbHandler:
 
 
 if __name__ == "__main__":
-    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:01'])
+    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:00'])
     # pprint(handler.db_tree())
     pprint (len(handler.get_data()))
+    handler.write_data_line_to_mongodb('x','x')
 
     # ['Zurich HB', '7:00', '2021-06-25']
 

@@ -72,7 +72,10 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
 
     for i in range(len(jdata['results'])):  # iterate on the list of destinations given
         if 'connections' not in jdata['results'][i]:
-            data_portion = {destination_list[i]: {'error': jdata['results'][i]['message']}}
+            if 'message' in jdata['results'][i]:
+                data_portion = {destination_list[i]: {'error': jdata['results'][i]['message']}}
+            else:
+                data_portion = {destination_list[i]: {'error': 'unknown error.'}}
             data_portions.append(data_portion)
             continue
         for con in jdata['results'][i]['connections']:  # iterate on the connection for each destination
@@ -80,7 +83,7 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
             departure_time = datetime_to_timestamp(con['departure'])
             stop_count = 0
             for leg in range(len(con['legs'])):  # iterate on the legs for each connection
-                if 'departure' not in con['legs'][leg]:
+                if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
                     data_portion[con['legs'][leg]['name']] = {'destination': con['legs'][leg]['name'],
                                                   'lon': con['legs'][leg]['lon'],
                                                   'lat': con['legs'][leg]['lat'],
@@ -143,6 +146,6 @@ def datetime_to_timestamp(datetime_str):
 
 
 if __name__ == "__main__":
-    test = (sbb_query_and_update(['Bern','Thun','Interlaken Ost'],['Zurich HB', '2021-06-25','7:00']))
+    test = (sbb_query_and_update_2(['Bern','Thun','Interlaken Ost'],'q' ,['Zurich HB', '2021-06-25','7:00']))
     pprint(test)
 

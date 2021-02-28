@@ -91,4 +91,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('../example_results/Zurich_HB_7:00_2021-06-25.csv', ['Zurich HB', '2021-06-25', '7:00'])
+    make_html_map('', ['Zurich HB', '2021-06-25', '7:02'])

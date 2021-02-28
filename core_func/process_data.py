@@ -64,14 +64,10 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_de
                     else:
                         if key not in data:
                             data[key] = data_portion[key]
-                            # io_func.write_data_line_to_open_csv(key, data[key], openfile)
-                            # openfile.flush()
                             mgdb.write_data_line_to_mongodb(key, data[key])
                             chain_counter += 1
                         elif data[key] is None:
                             data[key] = data_portion[key]
-                            # io_func.write_data_line_to_open_csv(key, data[key], openfile)
-                            # openfile.flush()
                             mgdb.write_data_line_to_mongodb(key, data[key])
                             chain_counter += 1
                 duration_counter += chain_counter
