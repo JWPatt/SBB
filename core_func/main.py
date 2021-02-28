@@ -5,6 +5,7 @@ import sys
 import io_func
 import core_func
 from core_func.sbb_api import sbb_query_and_update
+from core_func.sbb_api_2 import sbb_query_and_update_2
 from pprint import pprint
 
 
@@ -21,8 +22,8 @@ def primary(origin_details):
             dir_prefix = '../'
 
         main_table_csv = dir_prefix + io_func.database_loc('output_csvs/', origin_details)
-        all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt.csv'
-        key_cities_csv = dir_prefix + 'input_csvs/key_cities_sbb.csv'
+        all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt_short.csv'
+        key_cities_csv = dir_prefix + 'input_csvs/key_cities_sbb_short.csv'
         bad_destinations_csv = dir_prefix + 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = dir_prefix + 'output_csvs/typos.csv'
         extrema_destinations_csv = dir_prefix + 'output_csvs/extrema.csv'
@@ -75,56 +76,18 @@ def primary(origin_details):
         listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
                                                                  old_data, origin_details, q,))
         t_init = time.time()
+        data_list = list(data)
 
-        prefix = 'https://timetable.search.ch/api/route.json?from=Bern'
-        suffix = '&one_to_many=1'
-        body = ''
-        counter = 0
-        for key in sorted(list(data), key=lambda x: 1)[0:5]:
-            body = body + '&to[' + str(counter) + ']=' + key
-            counter += 1
-        url = prefix + body + suffix
-        print(url)
-        input()
-
-
-        for key in sorted(list(data), key=lambda x: 1):
-            if key in bad_destinations or key in misspelled_destinations:
-                continue
-            if data[key] is None:
-                extrema_destinations.add(key)
-                stack_counter += 1
-                print('Adding ' + key + ' to Pool.')
-                job = pool.apply_async(sbb_query_and_update, (key, data, q, origin_details))
-                jobs.append(job)
-                if stack_counter == 50000:
-                    break
-        print('%d cities have been loaded onto the stack.' % stack_counter)
-        print('Time to load stack: %d seconds' % (time.time()-t_init))
-
+        job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
+        jobs.append(job)
         # collect results from the workers through the pool result queue
         t_init = time.time()
         for job in jobs:
-            try:
-                # execute the SBB api get request and process the json
-                destination, data_portion, td_get = job.get()
+            data_portion, td_get = job.get()
+            pprint(data_portion)
 
-                #
-                if not destination and not data_portion:
-                    print("Ran out of free API requests")
-                    break
-                else:
-                    # compare the results with the previous results and sort data
-                    core_func.process_data(destination, data_portion, td_get, output_sets, q)
+        input()
 
-            except EOFError:
-                print("Ran out of free API requests")
-                break
-            except Exception as e:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(exc_type, fname, exc_tb.tb_lineno, e)
-                raise
 
         print('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
@@ -162,5 +125,5 @@ def primary(origin_details):
 
 
 if __name__ =="__main__":
-    origin_details = ['Zurich HB', '7:01', '2021-06-25']
+    origin_details = ['Zurich HB', '2021-06-25', '7:01']
     primary(origin_details)

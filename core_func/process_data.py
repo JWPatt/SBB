@@ -45,9 +45,6 @@ def process_data(destination, data_portion, td_get, output_sets, q):
 
 def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_details, q):
     with open(main_table_csv, 'w', encoding='utf-8') as openfile:
-        for key in old_data:
-            io_func.write_data_line_to_open_csv(key, old_data[key], openfile)
-            openfile.flush()
 
         mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
 
@@ -57,9 +54,8 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_de
                 if gotten == 'kill':
                     break
                 else:
-                    destination = gotten[0]
-                    data_portion = gotten[1]
-                    td_get = gotten[2]
+                    data_portion = gotten[0]
+                    td_get = gotten[1]
                 # print('in while 1', data_portion, td_get)
                 chain_counter = 0
                 for key in list(data_portion):

@@ -7,8 +7,8 @@ from requests.packages.urllib3.util.retry import Retry
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
 def sbb_query_and_update(destination, data, q, origin_details):
-    # if data[destination] is not None:
-    #     return destination, {destination: data[destination]}, 0
+    if data[destination] is not None:
+        return destination, {destination: data[destination]}, 0
 
     data_portions = []
     data_portion = {}
