@@ -5,6 +5,7 @@ from requests.packages.urllib3.util.retry import Retry
 from pprint import pprint
 import datetime
 
+
 # I just discovered a different API when allows for multiple destination searching - up to ~200 at a time!
 # Total game changer, totally reshapes how the API queries will be structured. Eliminates the need for the
 # parallelization, nearly.
@@ -38,7 +39,6 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
     true_destination = ""
     departure_time = []
     # print('API query for %s... ' % destination)
-
 
     prefix = 'https://timetable.search.ch/api/route.json?one_to_many=1'
     origin_body = '&from=' + origin_details[0] + '&date=' + origin_details[1] + '&time=' + origin_details[2]
@@ -83,17 +83,21 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
             departure_time = datetime_to_timestamp(con['departure'])
             stop_count = 0
             for leg in range(len(con['legs'])):  # iterate on the legs for each connection
+                if 'stops' not in con['legs'][leg]:
+                    continue
                 if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
+                    end_node = 0
+                    if 'departure' not in con['legs'][leg]: end_node = 1
                     data_portion[con['legs'][leg]['name']] = {'destination': con['legs'][leg]['name'],
-                                                  'lon': con['legs'][leg]['lon'],
-                                                  'lat': con['legs'][leg]['lat'],
-                                                  'departure': departure_time,
-                                                  'arrival': datetime_to_timestamp(con['legs'][leg]['arrival']),
-                                                  'travel_time': datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time,
-                                                  'num_transfers': leg-1,
-                                                  'intermediate_stations': stop_count,
-                                                  'endnode': 1
-                                                  }
+                                                              'lon': con['legs'][leg]['lon'],
+                                                              'lat': con['legs'][leg]['lat'],
+                                                              'departure': departure_time,
+                                                              'arrival': datetime_to_timestamp(con['legs'][leg]['arrival']),
+                                                              'travel_time': datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time,
+                                                              'num_transfers': leg - 1,
+                                                              'intermediate_stations': stop_count,
+                                                              'endnode': end_node
+                                                              }
                     continue
 
                 for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
@@ -111,8 +115,6 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
                                                   }
                     stop_count += 1
             data_portions.append(data_portion)
-
-
 
     # data portions contains many multiple entries; now go through and consolidate them
     # the dictionary with the shorted travel_time will be kept; departure time is 2nd priority
@@ -137,7 +139,6 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
                     if conn[city]['endnode'] == 0:
                         output_data_portion[city]['endnode'] = 0
 
-
     return output_data_portion, td_get
 
 
@@ -146,6 +147,5 @@ def datetime_to_timestamp(datetime_str):
 
 
 if __name__ == "__main__":
-    test = (sbb_query_and_update_2(['Bern','Thun','Interlaken Ost'],'q' ,['Zurich HB', '2021-06-25','7:00']))
+    test = (sbb_query_and_update_2(['Bern', 'Thun', 'Interlaken Ost'], 'q', ['Zurich HB', '2021-06-25', '7:00']))
     pprint(test)
-

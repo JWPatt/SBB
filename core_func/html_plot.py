@@ -9,7 +9,7 @@ import io_func
 def sec_to_hhmm(seconds):
     hours = seconds//3600
     minutes = (seconds-3600*hours)//60
-    return str(hours) + ":" + str(minutes).zfill(2)
+    return str(int(hours)) + ":" + str(int(minutes)).zfill(2)
 
 
 def read_geojson(url):
@@ -28,7 +28,7 @@ def make_html_map(path_to_data, origin_details):
 
     # read data in from a MongoDB
     mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
-    sbb = pd.DataFrame(mgdb.get_data()).drop('_id',axis=1).rename(columns={'destination': 'city', 'travel_time': 'duration'})
+    sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(columns={'destination': 'city', 'travel_time': 'duration'})
     sbb = sbb.groupby(['city']).min().reset_index()
     sbb = sbb.round({'lat': 3, 'lon': 3})
     sbb['hovertext'] = sbb['city'] + "<br>" + sbb['duration'].apply(sec_to_hhmm)
@@ -81,7 +81,8 @@ def make_html_map(path_to_data, origin_details):
                       height=800
                       )
 
-    fig.show()
+    if __name__ == "__main__":
+        fig.show()
 
     # fig.write_html("example_results/zurich_summer_saturday_0700.html",include_mathjax = False)
     fig.write_html("templates/output_map.html", include_mathjax=False)
@@ -91,4 +92,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('', ['Zurich HB', '2021-06-25', '7:02'])
+    make_html_map('', ['Zurich HB', '2021-06-25', '7:07'])

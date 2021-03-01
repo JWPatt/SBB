@@ -49,14 +49,16 @@ class MongodbHandler:
             print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
             input()
         elif 'destination' in data_dict:
+
+            # self.time.insert_one(data_dict)  # faster to just insert every time, but creates many duplicates
+
             if self.time.count_documents({'destination': data_dict['destination']}) == 0:
-                pprint('adding entry')
-                pprint(self.time.insert_one(data_dict))
+                self.time.insert_one(data_dict)
             elif self.time.count_documents({'destination': data_dict['destination']}) == 1:
-                pprint('doing update')
+                print('updating')
                 self.time.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
             elif self.time.count_documents({'destination': data_dict['destination']}) > 1:
-                pprint('deleting extras, keeping the fastest')
+                print('deleting')
                 fastest_entry = list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
                 self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
                 self.time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
@@ -65,6 +67,18 @@ class MongodbHandler:
     def write_data_dict_of_dict(self,data_dict_of_dict):
         for key in data_dict_of_dict:
             self.write_data_line_to_mongodb(data_dict_of_dict[key])
+
+        # for key in data_dict_of_dict:
+        #     data_dict = data_dict_of_dict[key]
+        #
+        #     if self.time.count_documents({'destination': data_dict['destination']}) > 1:
+        #         pprint('deleting extras, keeping the fastest')
+        #         fastest_entry = \
+        #         list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
+        #         self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
+        #         self.time.update_one(
+        #             {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}},
+        #             {'$set': data_dict})
 
 
 
@@ -84,17 +98,14 @@ class MongodbHandler:
                     tree[col[0]][col[1]][col[2]] = num_pts
         return tree
 
-    # Get data from db given a destination, date, and time
-    def get_data(self, origin_details=None):
+    # Get data from db given an origin city, date, and time
+    def get_data_list(self, origin_details=None):
         if origin_details is None:
             if self.time == '':
                 print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
                 input()
             else:
-                print('here')
                 data = list(self.time.find())
-                print(data)
-                input()
         else:
             col = io_func.mongodb_loc(origin_details)
             print(self.time)
@@ -103,13 +114,33 @@ class MongodbHandler:
 
         return data
 
+    # Get data from db given an origin city, date, and time
+    def get_data_dict(self, origin_details=None):
+        if origin_details is None:
+            if self.time == '':
+                print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+                input()
+            else:
+                data = list(self.time.find())
+        else:
+            col = io_func.mongodb_loc(origin_details)
+            print(self.time)
+            data_ = getattr(self.db, col)
+            data = list(data_.find())
+        data_dict = {}
+        for row in data:
+            data_dict[row['destination']] = row
+        return data_dict
+
+
+
+
 
 
 if __name__ == "__main__":
     handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:00'])
     # pprint(handler.db_tree())
-    pprint (len(handler.get_data()))
-    handler.write_data_line_to_mongodb('x','x')
+    pprint (len(handler.get_data_list()))
 
     # ['Zurich HB', '7:00', '2021-06-25']
 

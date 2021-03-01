@@ -22,7 +22,7 @@ def primary(origin_details, mgdb):
             dir_prefix = '../'
 
         main_table_csv = dir_prefix + io_func.database_loc('output_csvs/', origin_details)
-        all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt_short.csv'
+        all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt.csv'
         key_cities_csv = dir_prefix + 'input_csvs/key_cities_sbb_short.csv'
         bad_destinations_csv = dir_prefix + 'output_csvs/shitlist.csv'
         misspelled_destinations_csv = dir_prefix + 'output_csvs/typos.csv'
@@ -43,13 +43,14 @@ def primary(origin_details, mgdb):
                 os.system("rm " + misspelled_destinations_csv)
                 os.system("touch " + misspelled_destinations_csv)
 
-        # Load parallel processing tools
+        #Load parallel processing tools
         manager = mp.Manager()
         q = manager.Queue()
         pool = mp.Pool(4)
 
         duration_counter = 0
         data = manager.dict()
+        # data = {}
         old_data = {}
         bad_destinations = set()
         misspelled_destinations = set()
@@ -73,19 +74,55 @@ def primary(origin_details, mgdb):
 
         jobs = []
         t_init = time.time()
-        data_list = list(data)
+        data_list_master = list(data)
+        data_list_of_lists = [data_list_master[x:x+200] for x in range(0,len(data_list_master),200)]
 
-        # job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
-        # jobs.append(job)
-        # # collect results from the workers through the pool result queue
+        # listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
+        #                                                          old_data, origin_details, q,))
+
         # t_init = time.time()
+        # for data_list in data_list_of_lists:
+        #     job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
+        #     jobs.append(job)
+        #     # collect results from the workers through the pool result queue
+        #     print(time.time() - t_init)
+        #
         # for job in jobs:
         #     data_portion, td_get = job.get()
-        #     pprint(data_portion)
+        #     mgdb.write_data_dict_of_dict(data_portion)
 
-        data_portion, td_get = sbb_query_and_update_2(data_list,'',origin_details)
+        t_init = time.time()
+        data_list = []
+        counter = 0
+        skip_counter = 0
+        results = {}
+        for city in data_list_master:
+            if counter < 200:
+                if city not in results:
+                    data_list.append(city)
+                    counter += 1
+                else:
+                    skip_counter += 1
+            else:
+                print('skipped over ', str(skip_counter))
+                skip_counter = 0
+                data_portion, td_get = sbb_query_and_update_2(data_list, '', origin_details)
+                print("API: ", time.time() - t_init)
+                mgdb.write_data_dict_of_dict(data_portion)
+                print("mongodb: ", time.time() - t_init)
+                results.update(data_portion)
+                print('results length: ', str(len(results)))
+                data_list = []
+                counter = 0
+        mgdb.write_data_dict_of_dict(results)
 
-        mgdb.write_data_dict_of_dict(data_portion)
+
+        # t_init = time.time()
+        # for data_list in data_list_of_lists:
+        #     data_portion, td_get = sbb_query_and_update_2(data_list,'',origin_details)
+        #     print("API: ", time.time() - t_init)
+        #     mgdb.write_data_dict_of_dict(data_portion)
+        #     print("mongodb: ", time.time() - t_init)
 
         print('Time to clear the stack: ' + str(time.time()-t_init) + ' seconds')
 
@@ -123,9 +160,9 @@ def primary(origin_details, mgdb):
 
 
 if __name__ =="__main__":
-    origin_details = ['Zurich HB', '2021-06-25', '7:02']
+    origin_details = ['Zurich HB', '2021-06-25', '7:09']
     mgdb = io_func.MongodbHandler("127.0.0.1:27017", "SBB_time_map")
-    mgdb.set_col(['Zurich HB', '2021-06-25', '7:01'])
+    mgdb.set_col(['Zurich HB', '2021-06-25', '7:09'])
 
     t_init = time.time()
     primary(origin_details, mgdb)
