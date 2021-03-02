@@ -48,11 +48,11 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
     url = prefix + origin_body + destination_body
     print(url)
 
-    # session = requests.Session()
+    session = requests.Session()
     retry = Retry(connect=1, backoff_factor=0.5)
-    # adapter = HTTPAdapter(max_retries=retry)
-    # session.mount('http://37.120.239.152:3128', adapter)
-    # session.mount('https://37.120.239.152:3128', adapter)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://37.120.239.152:3128', adapter)
+    session.mount('https://37.120.239.152:3128', adapter)
     proxies = {
         "http": 'http://84.17.51.233:3128',
         "https": 'https://84.17.51.233:3128',

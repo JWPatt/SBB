@@ -43,7 +43,7 @@ def primary(origin_details, mgdb):
                 os.system("rm " + misspelled_destinations_csv)
                 os.system("touch " + misspelled_destinations_csv)
 
-        #Load parallel processing tools
+        # Load parallel processing tools
         manager = mp.Manager()
         q = manager.Queue()
         pool = mp.Pool(4)
@@ -73,12 +73,62 @@ def primary(origin_details, mgdb):
         n_bad = len(bad_destinations)
 
         jobs = []
+        stack_counter = 0
+        listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
+                                                                 old_data, origin_details, q,))
         t_init = time.time()
         data_list_master = list(data)
         data_list_of_lists = [data_list_master[x:x+200] for x in range(0,len(data_list_master),200)]
 
-        # listener = pool.apply_async(core_func.listen_and_write, (main_table_csv, data, duration_counter,
-        #                                                          old_data, origin_details, q,))
+        for data_list in data_list_of_lists[0:3]:
+            job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
+            jobs.append(job)
+        print(len(jobs))
+        results={}
+        index = 0
+        for job in jobs:
+            index += 1
+            data_portion, td_get = job.get()
+            print(str(index) + ' got ' + str(len(data_portion)))
+            results.update(data_portion)
+            print(str(index) + ' total ' + str(len(results)))
+            job = pool.apply_async(sbb_query_and_update_2, (data_list_of_lists[index+2], q, origin_details))
+            jobs.append(job)
+
+            #now need to make it so the new spawned jobs get each a unique list of cities not already known
+
+            # mgdb.write_data_dict_of_dict(data_portion)
+
+        # t_init = time.time()
+        # data_list = []
+        # counter = 0
+        # skip_counter = 0
+        # results = {}
+        # for city in data_list_master:
+        #     if counter < 200:
+        #         if city not in results:
+        #             data_list.append(city)
+        #             counter += 1
+        #         else:
+        #             skip_counter += 1
+        #     else:
+        #         print('skipped over ', str(skip_counter))
+        #         skip_counter = 0
+        #         job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details))
+        #         data_portion, td_get = job.get()
+        #         # data_portion, td_get = sbb_query_and_update_2(data_list, '', origin_details)
+        #         print("API: ", time.time() - t_init)
+        #         # mgdb.write_data_dict_of_dict(data_portion)
+        #         # print("mongodb: ", time.time() - t_init)
+        #         results.update(data_portion)
+        #         print('results length: ', str(len(results)))
+        #         data_list = []
+        #         counter = 0
+        # mgdb.write_data_dict_of_dict(results)
+
+
+        print('done')
+        input()
 
         # t_init = time.time()
         # for data_list in data_list_of_lists:
