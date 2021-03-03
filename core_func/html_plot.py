@@ -92,4 +92,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('', ['Zurich HB', '2021-06-25', '7:07'])
+    make_html_map('', ['Zurich HB', '2021-06-25', '7:10'])

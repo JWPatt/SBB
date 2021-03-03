@@ -133,14 +133,33 @@ class MongodbHandler:
         return data_dict
 
 
+    # Get a set of known destinations from db given an origin city, date, and time
+    def get_destination_set(self, origin_details=None):
+        if origin_details is None:
+            if self.time == '':
+                print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+                input()
+            else:
+                data = list(self.time.find({},{'destination':1,'_id':0}))
+        else:
+            col = io_func.mongodb_loc(origin_details)
+            print(self.time)
+            data_ = getattr(self.db, col)
+            data = list(data_.find({},{'destination':1,'_id':0}))
+        data_set = set()
+        for row in data:
+            data_set.add(row['destination'])
+        return data_set
+
+
 
 
 
 
 if __name__ == "__main__":
-    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:00'])
+    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:10'])
     # pprint(handler.db_tree())
-    pprint (len(handler.get_data_list()))
+    pprint (handler.get_destination_set())
 
     # ['Zurich HB', '7:00', '2021-06-25']
 

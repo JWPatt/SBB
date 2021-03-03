@@ -84,5 +84,48 @@ def listen_and_write(main_table_csv, data, duration_counter, old_data, origin_de
                 print(key, chain_counter, duration_counter, td_get)
                 raise
 
+
+def listen_and_spawn_job(data_list_master, origin_details, q):
+    mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
+    data_set_master = set(data_list_master)
+    next_batch = []
+    print('listener')
+    while 1:
+        # try:
+            gotten = q.get()
+
+            print('listener again')
+            if gotten == 'kill':
+                break
+            else:
+                data_portion = gotten[0]
+                index = gotten[1]
+
+            counter = 0
+            for key in data_set_master:
+                if key in data_portion:
+                    data_set_master.remove(key)
+                    print('removing ',str(key))
+                elif counter < 1:
+                    next_batch.append(key)
+                    counter += 1
+                    print('adding ', str(key))
+                else:
+                    print('exiting ', str(key))
+                    counter = 0
+                    break
+
+
+
+        # except EOFError:
+        #     print("Ran out of free API requests")
+        #     raise
+        # except Exception as e:
+        #     exc_type, exc_obj, exc_tb = sys.exc_info()
+        #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        #     print(exc_type, fname, exc_tb.tb_lineno, e)
+        #     # print(key, chain_counter, duration_counter, td_get)
+        #     raise
+
 if __name__ == "__main__":
     process_data("Bern", {"Bern":1}, 0, [set(), set(), set(), set()], 'q')
