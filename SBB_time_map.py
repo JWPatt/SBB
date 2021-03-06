@@ -30,15 +30,15 @@ def home():
     # Enter date in YYYY-MM-DD format (e.g. '2021-11-22')
 
     origin_city = ['Zurich HB', 'Bern', 'Geneva']
-    origin_date = ['2021-06-25', '2021-06-25', '2021-06-25']
-    origin_time = ['7:03', '7:00', '7:00']
+    origin_date = ['2021-06-26', '2021-06-26', '2021-06-26']
+    origin_time = ['7:00', '7:00', '7:00']
     origin_details = [[origin_city[i], origin_date[i], origin_time[i]] for i in range(3)]
     origin_details = origin_details[0]
 
-    # origin_details = flask.request.form.get("origin_cities").split(".")
-    # origin_details[0] = origin_details[0].replace("_"," ")
-    # origin_details[1] = origin_details[1].replace("_","-")
-    # origin_details[2] = origin_details[2].replace("_",":")
+    origin_details = flask.request.form.get("origin_cities").split(".")
+    origin_details[0] = origin_details[0].replace("_"," ")
+    origin_details[1] = origin_details[1].replace("_","-")
+    origin_details[2] = origin_details[2].replace("_",":")
     print(origin_details)
     try:
         mgdb.set_col(origin_details)

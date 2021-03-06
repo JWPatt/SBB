@@ -19,32 +19,12 @@ def primary(origin_details, mgdb):
         return 0
 
     try:
-        # Load file names
+        # Load input file names
         dir_prefix = ''
         if __name__ == '__main__':
             dir_prefix = '../'
-
-        main_table_csv = dir_prefix + io_func.database_loc('output_csvs/', origin_details)
         all_city_file_csv = dir_prefix + 'input_csvs/Betriebspunkt_short.csv'
         key_cities_csv = dir_prefix + 'input_csvs/key_cities_sbb_short.csv'
-        bad_destinations_csv = dir_prefix + 'output_csvs/shitlist.csv'
-        misspelled_destinations_csv = dir_prefix + 'output_csvs/typos.csv'
-        extrema_destinations_csv = dir_prefix + 'output_csvs/extrema.csv'
-        fresh_start = False
-
-        if fresh_start:
-            if os.path.isfile(main_table_csv):
-                os.system("rm " + main_table_csv)
-                os.system("touch " + main_table_csv)
-            if os.path.isfile(bad_destinations_csv):
-                os.system("rm " + bad_destinations_csv)
-                os.system("touch " + bad_destinations_csv)
-            if os.path.isfile(extrema_destinations_csv):
-                os.system("rm " + extrema_destinations_csv)
-                os.system("touch " + extrema_destinations_csv)
-            if os.path.isfile(misspelled_destinations_csv):
-                os.system("rm " + misspelled_destinations_csv)
-                os.system("touch " + misspelled_destinations_csv)
 
         # Load parallel processing tools
         manager = mp.Manager()
@@ -57,51 +37,24 @@ def primary(origin_details, mgdb):
         retry = Retry(connect=1, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
 
+        # Initialize various
+        endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
+        data_set_master = set(endnodes)
 
-        duration_counter = 0
-        data = manager.dict()
-        # data = {}
-        old_data = {}
-        bad_destinations = set()
-        misspelled_destinations = set()
-        extrema_destinations = set()
-        not_extrema_destinations = set()
-        output_sets = [bad_destinations, misspelled_destinations, extrema_destinations, not_extrema_destinations]
-
-        old_data.update(io_func.csv_to_dict(main_table_csv))
-        print("Loading previous data of {old_data} cities.".format(old_data=str(len(old_data))))
-        data.update(io_func.betriebspunkt_csv_to_empty_dict(all_city_file_csv))
-        data.update(io_func.csv_to_empty_dict(key_cities_csv))
-        data.update(old_data)
-        data=(mgdb.get_endnode_set('endnodes_Zurich'))
-
-        bad_destinations.update(io_func.csv_to_set(bad_destinations_csv))
-        misspelled_destinations.update(io_func.csv_to_set(misspelled_destinations_csv))
-        extrema_destinations.update(io_func.csv_to_set(extrema_destinations_csv))
-
-        n_extrema = len(extrema_destinations)
-        n_misspelled = len(misspelled_destinations)
-        n_bad = len(bad_destinations)
-
-        jobs = []
-
+        # Remove destinations where we already have data
         known_destinations = mgdb.get_destination_set(origin_details)
         pop_counter = 0
-        for destination in set(data):
+        for destination in set(endnodes):
             if destination in known_destinations:
-                data.discard(destination)
+                data_set_master.discard(destination)
                 pop_counter += 1
-        print('discarded ', pop_counter, " destinations, out of ", (len(data)+pop_counter))
-        print('leftover ', data)
+        print('discarded ', pop_counter, " destinations, out of ", (len(data_set_master)+pop_counter))
+        print('leftover ', data_set_master)
 
         t_init = time.time()
         dest_per_query = 220
-        # data_list_master = list(data)
-        data_set_master = set(data)
-        data_list_of_lists = [list(data_set_master)[x:x+dest_per_query] for x in range(0,len(data_set_master),dest_per_query)]
 
-        # listener = pool.apply_async(core_func.listen_and_spawn_job, (data_list_master, origin_details, q))
-
+        jobs = []
         for i in range(nthreads):
             if len(data_set_master) > 0:
                 data_list = list(data_set_master)[0:dest_per_query]
@@ -125,35 +78,23 @@ def primary(origin_details, mgdb):
                     jobs.append(job)
             except IndexError:
                 print('no more jobs to add')
-
-
-
         pool.close()
         pool.join()
+
+        while len(data_list) >= 1:
+            data_list = list(data_set_master)[0:dest_per_query]
+            data_set_master.difference_update(set(data_list))
+            job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details, session))
+
         t_init = time.time()
         mgdb.write_data_dict_of_dict(results)
         print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(index) + 'API queries')
 
 
-        io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
-        io_func.write_destination_set_to_csv(misspelled_destinations, misspelled_destinations_csv)
-        io_func.write_destination_set_to_csv(extrema_destinations, extrema_destinations_csv)
-        print("Added %s, %s, and %s to bad, misspelled, and extrema desntination csvs." % (
-            (len(bad_destinations) - n_bad),
-            (len(misspelled_destinations) - n_misspelled),
-            (len(extrema_destinations) - n_extrema)))
 
-    except KeyboardInterrupt or EOFError:
-        print("Killing process: writing extrema, misspelled, and bad destination csv's first.")
-        if extrema_destinations:
-            print("End node destination list: added " + str(len(extrema_destinations) - n_extrema) + " destinations to list.")
-            io_func.write_destination_set_to_csv(extrema_destinations, extrema_destinations_csv)
-        if misspelled_destinations:
-            print("Misspelled destination list: added " + str(len(misspelled_destinations) - n_misspelled) + " destinations to list.")
-            io_func.write_destination_set_to_csv(misspelled_destinations, misspelled_destinations_csv)
-        if bad_destinations:
-            print("Bad destination list: added " + str(len(bad_destinations) - n_bad) + " destinations to list.")
-            io_func.write_destination_set_to_csv(bad_destinations, bad_destinations_csv)
+
+    # except KeyboardInterrupt or EOFError:
+    #     mgdb.write_data_dict_of_dict(results)
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

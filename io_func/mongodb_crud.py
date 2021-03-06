@@ -162,7 +162,8 @@ class MongodbHandler:
             data = list(data_.find({},{'destination':1,'_id':0}))
         data_set = set()
         for row in data:
-            data_set.add(row['destination'])
+            if 'destination' in row:
+                data_set.add(row['destination'])
         return data_set
 
 
