@@ -127,5 +127,20 @@ def listen_and_spawn_job(data_list_master, origin_details, q):
         #     # print(key, chain_counter, duration_counter, td_get)
         #     raise
 
+
+def update_dict_min_duration(main_dict, new_dict):
+    for key in new_dict:
+        if key in main_dict:
+            if new_dict[key]['travel_time'] < main_dict[key]['travel_time']:
+                main_dict[key] = new_dict[key]
+            main_dict[key]['endnode'] = 0
+        else:
+            main_dict[key] = new_dict[key]
+    # return main_dict
+
 if __name__ == "__main__":
-    process_data("Bern", {"Bern":1}, 0, [set(), set(), set(), set()], 'q')
+    # process_data("Bern", {"Bern":1}, 0, [set(), set(), set(), set()], 'q')
+    dic1 = {'bern':{'travel_time':10,'endnode':1}}
+    dic2 = {'bern':{'travel_time': 9, 'endnode': 1}}
+    update_dict_min_duration(dic1, dic2)
+    print(dic1)

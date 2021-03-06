@@ -29,7 +29,7 @@ import datetime
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
-def sbb_query_and_update_2(destination_list, q, origin_details):
+def sbb_query_and_update_2(destination_list, q, origin_details, session):
     # if data[destination] is not None:
     #     return destination, {destination: data[destination]}, 0
 
@@ -48,17 +48,17 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
     url = prefix + origin_body + destination_body
     print(url)
 
-    session = requests.Session()
-    retry = Retry(connect=1, backoff_factor=0.5)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://37.120.239.152:3128', adapter)
-    session.mount('https://37.120.239.152:3128', adapter)
-    proxies = {
-        "http": 'http://84.17.51.233:3128',
-        "https": 'https://84.17.51.233:3128',
-    }
+    # session = requests.Session()
+    # retry = Retry(connect=1, backoff_factor=0.5)
+    # adapter = HTTPAdapter(max_retries=retry)
+    # session.mount('http://37.120.239.152:3128', adapter)
+    # session.mount('https://37.120.239.152:3128', adapter)
+    # proxies = {
+    #     "http": 'http://84.17.51.233:3128',
+    #     "https": 'https://84.17.51.233:3128',
+    # }
     t_init = time.time()
-    response = requests.get(url)
+    response = session.get(url)
     td_get = time.time() - t_init
     jdata = response.json()
     if response.status_code != 200:
@@ -69,6 +69,7 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
     else:
         if 'results' not in jdata:
             print("ERROR: API returned with no results.")
+            return {},td_get
 
     for i in range(len(jdata['results'])):  # iterate on the list of destinations given
         if 'connections' not in jdata['results'][i]:
@@ -83,6 +84,21 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
             departure_time = datetime_to_timestamp(con['departure'])
             stop_count = 0
             for leg in range(len(con['legs'])):  # iterate on the legs for each connection
+                end_node = 0
+                if 'exit' in con['legs'][leg]:
+                    if 'to' in con['legs'][leg]:
+                        if con['legs'][leg]['exit']['name'] == con['legs'][leg]['to']: end_node = 1
+                    data_portion[con['legs'][leg]['exit']['name']] = {'destination': con['legs'][leg]['exit']['name'],
+                                                          'lon': con['legs'][leg]['exit']['lon'],
+                                                          'lat': con['legs'][leg]['exit']['lat'],
+                                                          'departure': departure_time,
+                                                          'arrival': datetime_to_timestamp(con['legs'][leg]['exit']['arrival']),
+                                                          'travel_time': datetime_to_timestamp(
+                                                              con['legs'][leg]['exit']['arrival']) - departure_time,
+                                                          'num_transfers': leg - 1,
+                                                          'intermediate_stations': stop_count,
+                                                          'endnode': end_node
+                                                          }
                 if 'stops' not in con['legs'][leg]:
                     continue
                 if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
@@ -99,6 +115,7 @@ def sbb_query_and_update_2(destination_list, q, origin_details):
                                                               'endnode': end_node
                                                               }
                     continue
+
 
                 for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
                     if 'arrival' not in stop:

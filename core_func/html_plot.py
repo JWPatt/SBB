@@ -29,11 +29,10 @@ def make_html_map(path_to_data, origin_details):
     # read data in from a MongoDB
     mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(columns={'destination': 'city', 'travel_time': 'duration'})
+    sbb = sbb[sbb['duration'] < 86400]
     sbb = sbb.groupby(['city']).min().reset_index()
     sbb = sbb.round({'lat': 3, 'lon': 3})
     sbb['hovertext'] = sbb['city'] + "<br>" + sbb['duration'].apply(sec_to_hhmm)
-
-    print(sbb)
 
     # cap the maximum duration which gets colored to maintain appropriate colors in majority of points
     cap_max = 60*60*6
@@ -92,4 +91,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('', ['Zurich HB', '2021-06-25', '7:10'])
+    make_html_map('', ['Bern', '2021-06-26', '7:01'])

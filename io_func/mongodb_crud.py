@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from pprint import pprint
 import pandas as pd
 import io_func
+import multiprocessing as mp
 
 
 class MongodbHandler:
@@ -32,6 +33,7 @@ class MongodbHandler:
         self.time = getattr(self.date, origin_details[2].replace(':', '_'))  # Travel time
 
     def write_data_line_to_mongodb(self, data_dict):
+        print('writing')
         # self.time.insert_one({"destination": destination, "lon": data_list[1],
         #                       "lat": data_list[2], "travel_time": data_list[0]})
 
@@ -46,39 +48,42 @@ class MongodbHandler:
         #               'travel_time': 16540.0}
 
         if self.time == '':
-            print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+            print('Attempting to write to DB without an origin_details - DB doesn\'t know where to look!')
             input()
         elif 'destination' in data_dict:
 
             # self.time.insert_one(data_dict)  # faster to just insert every time, but creates many duplicates
 
-            if self.time.count_documents({'destination': data_dict['destination']}) == 0:
-                self.time.insert_one(data_dict)
-            elif self.time.count_documents({'destination': data_dict['destination']}) == 1:
-                print('updating')
-                self.time.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
-            elif self.time.count_documents({'destination': data_dict['destination']}) > 1:
-                print('deleting')
-                fastest_entry = list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
-                self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
-                self.time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
+            if data_dict['travel_time'] < 86400:
+                if self.time.count_documents({'destination': data_dict['destination']}) == 0:
+                    self.time.insert_one(data_dict)
+                elif self.time.count_documents({'destination': data_dict['destination']}) == 1:
+                    print('updating')
+                    self.time.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
+                elif self.time.count_documents({'destination': data_dict['destination']}) > 1:
+                    print('deleting')
+                    fastest_entry = list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
+                    self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
+                    self.time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
 
 
     def write_data_dict_of_dict(self,data_dict_of_dict):
-        for key in data_dict_of_dict:
-            self.write_data_line_to_mongodb(data_dict_of_dict[key])
-
         # for key in data_dict_of_dict:
-        #     data_dict = data_dict_of_dict[key]
-        #
-        #     if self.time.count_documents({'destination': data_dict['destination']}) > 1:
-        #         pprint('deleting extras, keeping the fastest')
-        #         fastest_entry = \
-        #         list(self.time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
-        #         self.time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
-        #         self.time.update_one(
-        #             {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}},
-        #             {'$set': data_dict})
+        #     self.write_data_line_to_mongodb(data_dict_of_dict[key])
+
+        batch = []
+        for key in data_dict_of_dict:
+            batch.append(data_dict_of_dict[key])
+
+        self.time.insert_many(batch)
+
+    def write_data_dict_of_dict_multi(self, data_dict_of_dict, nthreads):
+        pool = mp.pool.ThreadPool(nthreads)
+        for key in data_dict_of_dict:
+            result = pool.map(self.write_data_line_to_mongodb,data_dict_of_dict)
+        pool.close()
+        pool.join()
+
 
 
 
@@ -89,13 +94,14 @@ class MongodbHandler:
         for i in self.db.list_collection_names():
             num_pts = self.db[i].estimated_document_count()
             col = (i.split("."))
-            if col[0] not in tree:
-                tree[col[0]] = {col[1]: {col[2]: num_pts}}
-            else:
-                if col[1] not in tree[col[0]]:
-                    tree[col[0]][col[1]] = {col[2]: num_pts}
+            if len(col)==2:
+                if col[0] not in tree:
+                    tree[col[0]] = {col[1]: {col[2]: num_pts}}
                 else:
-                    tree[col[0]][col[1]][col[2]] = num_pts
+                    if col[1] not in tree[col[0]]:
+                        tree[col[0]][col[1]] = {col[2]: num_pts}
+                    else:
+                        tree[col[0]][col[1]][col[2]] = num_pts
         return tree
 
     # Get data from db given an origin city, date, and time
@@ -125,12 +131,21 @@ class MongodbHandler:
         else:
             col = io_func.mongodb_loc(origin_details)
             print(self.time)
-            data_ = getattr(self.db, col)
-            data = list(data_.find())
+            data = getattr(self.db, col)
+            data = list(data.find())
         data_dict = {}
         for row in data:
             data_dict[row['destination']] = row
         return data_dict
+
+    # Get set of end-node destinations from db given a collection name
+    def get_endnode_set(self, col):
+        data = getattr(self.db, col)
+        data = list(data.find())
+        data_set = set()
+        for row in data:
+            data_set.add(row['destination'])
+        return data_set
 
 
     # Get a set of known destinations from db given an origin city, date, and time
@@ -143,7 +158,6 @@ class MongodbHandler:
                 data = list(self.time.find({},{'destination':1,'_id':0}))
         else:
             col = io_func.mongodb_loc(origin_details)
-            print(self.time)
             data_ = getattr(self.db, col)
             data = list(data_.find({},{'destination':1,'_id':0}))
         data_set = set()
@@ -152,12 +166,44 @@ class MongodbHandler:
         return data_set
 
 
+def write_data_dict_of_dict_multi(mgdb, data_dict_of_dict, nthreads):
+    pool = mp.Pool(nthreads)
+    for key in data_dict_of_dict:
+        result = pool.map(mgdb.write_data_line_to_mongodb,data_dict_of_dict[key])
+        # result.get()
+    pool.close()
+    pool.join()
 
+def write_data_line_to_mongodb(url, database_name, origin_details, data_dict):
+    client = MongoClient(url)
+    db = getattr(client, database_name)  # SBB_time_map
+    dest = getattr(db, origin_details[0].replace(' ', '_'))  # Destination
+    date = getattr(dest, origin_details[1].replace('-', '_'))  # Travel date
+    time = getattr(date, origin_details[2].replace(':', '_'))  # Travel time
+
+    if time == '':
+        print('Attempting to write to DB without an origin_details - DB doesn\'t know where to look!')
+        input()
+    elif 'destination' in data_dict:
+
+        # self.time.insert_one(data_dict)  # faster to just insert every time, but creates many duplicates
+
+        if data_dict['travel_time'] < 86400:
+            if time.count_documents({'destination': data_dict['destination']}) == 0:
+                time.insert_one(data_dict)
+            elif time.count_documents({'destination': data_dict['destination']}) == 1:
+                print('updating')
+                time.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
+            elif time.count_documents({'destination': data_dict['destination']}) > 1:
+                print('deleting')
+                fastest_entry = list(time.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
+                time.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
+                time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
 
 
 
 if __name__ == "__main__":
-    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:10'])
+    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:13'])
     # pprint(handler.db_tree())
     pprint (handler.get_destination_set())
 
