@@ -4,6 +4,7 @@ import urllib.request
 import plotly
 import plotly.graph_objs as go
 import io_func
+from pprint import pprint
 
 
 def sec_to_hhmm(seconds):
@@ -27,10 +28,15 @@ def make_html_map(path_to_data, origin_details):
     # sbb['hovertext'] = sbb['city'] + "<br>" +  sbb['duration'].apply(sec_to_hhmm)
 
     # read data in from a MongoDB
-    mgdb = io_func.MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", origin_details)
+    pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
+    mgdb_url = "mongodb+srv://admin_patty:" + pw.columns.to_list()[
+        0] + "@cluster0.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    print(mgdb_url)
+
+    mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map", origin_details)
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(columns={'destination': 'city', 'travel_time': 'duration'})
     sbb = sbb[sbb['duration'] < 86400]
-    sbb = sbb.groupby(['city']).min().reset_index()
+    # sbb = sbb.groupby(['city']).min().reset_index()
     sbb = sbb.round({'lat': 3, 'lon': 3})
     sbb['hovertext'] = sbb['city'] + "<br>" + sbb['duration'].apply(sec_to_hhmm)
 
@@ -38,7 +44,13 @@ def make_html_map(path_to_data, origin_details):
     cap_max = 60*60*6
     sbb.loc[sbb['duration'] > cap_max,'duration'] = cap_max
 
-
+    selectedData = ['2']
+    selectedData = [int(i) for i in selectedData]
+    if selectedData != [] or len(selectedData) != 0:
+        print(selectedData)
+        sbb = sbb[sbb['duration'] <= max((selectedData))*60*60]
+        sbb = sbb[sbb['duration'] >= (min(selectedData)-1)*60*60]
+        # if len(selectedData) > 2:
 
     # swiss_url = 'https://raw.githubusercontent.com/empet/Datasets/master/swiss-cantons.geojson'
     # jdata = read_geojson(swiss_url)
@@ -80,6 +92,7 @@ def make_html_map(path_to_data, origin_details):
                       height=800
                       )
 
+
     if __name__ == "__main__":
         fig.show()
 
@@ -91,4 +104,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('', ['Bern', '2021-06-26', '7:01'])
+    make_html_map('', ['Zurich HB', '2021-06-26', '7:02'])

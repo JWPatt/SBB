@@ -8,6 +8,7 @@ from core_func.sbb_api import sbb_query_and_update
 from core_func.sbb_api_2 import sbb_query_and_update_2
 from pprint import pprint
 import requests
+import pandas as pd
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -39,6 +40,8 @@ def primary(origin_details, mgdb):
 
         # Initialize various
         endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
+        endnodes = io_func.csv_to_set("../input_csvs/endnodes_Zurich.csv")
+        print(endnodes)
         data_set_master = set(endnodes)
 
         # Remove destinations where we already have data
@@ -105,10 +108,32 @@ def primary(origin_details, mgdb):
 
 
 if __name__ =="__main__":
-    origin_details = ['Bern', '2021-06-26', '7:01']
-    mgdb = io_func.MongodbHandler("127.0.0.1:27017", "SBB_time_map")
-    mgdb.set_col(['Bern', '2021-06-26', '7:01'])
+    # origin_details = ['Zurich HB', '2021-06-26', '7:02']
+    # pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
+    # mgdb = io_func.MongodbHandler("mongodb+srv://admin_patty:"+pw.columns.to_list()[0]+"@cluster0.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map")
+    # mgdb.set_col(['Zurich HB', '2021-06-26', '7:00'])
+    #
+    # t_init = time.time()
+    # primary(origin_details, mgdb)
+    # print(time.time() - t_init)
 
-    t_init = time.time()
-    primary(origin_details, mgdb)
-    print(time.time() - t_init)
+    pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
+    mgdb = io_func.MongodbHandler("mongodb+srv://admin_patty:" + pw.columns.to_list()[
+        0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map")
+
+    origin_city = ['Bern']
+    # origin_date = ['2021-06-25']
+    # origin_time = ['6:00']
+    # origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
+    origin_date = ['2021-06-25' ,'2021-06-26']
+    origin_time = ['6:00','7:00']
+    origin_details_list = []
+    for city in origin_city:
+        for date in origin_date:
+            for time in origin_time:
+                origin_details_list.append([city, date, time])
+
+    for origin_details in origin_details_list:
+        print(origin_details)
+        mgdb.set_col(origin_details)
+        success = core_func.primary(origin_details, mgdb)

@@ -8,4 +8,5 @@ from .sbb_api import sbb_query_and_update
 from .sbb_api_2 import sbb_query_and_update_2
 from .html_plot import make_html_map
 from .main import primary
+from .misc_funcs import *
 

@@ -13,4 +13,5 @@ from .database_name_maker import mongodb_loc
 from .mongodb_crud import MongodbHandler
 from .mongodb_crud import write_data_dict_of_dict_multi
 from .mongodb_crud import write_data_line_to_mongodb
+from .mapping import read_geojson
 

@@ -204,9 +204,12 @@ def write_data_line_to_mongodb(url, database_name, origin_details, data_dict):
 
 
 if __name__ == "__main__":
-    handler = MongodbHandler.init_and_set_col("127.0.0.1:27017", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:13'])
+    pw = pd.read_csv("secret_mgdb_pw.csv")
+    print(pw.columns.to_list()[0])
+    handler = MongodbHandler.init_and_set_col("mongodb+srv://admin_patty:"+pw.columns.to_list()[0]+"@cluster0.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:13'])
     # pprint(handler.db_tree())
-    pprint (handler.get_destination_set())
+    print(handler.client.test)
+    # pprint (handler.get_destination_set())
 
     # ['Zurich HB', '7:00', '2021-06-25']
 

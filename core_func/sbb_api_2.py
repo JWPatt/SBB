@@ -4,6 +4,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from pprint import pprint
 import datetime
+import core_func
 
 
 # I just discovered a different API when allows for multiple destination searching - up to ~200 at a time!
@@ -80,6 +81,8 @@ def sbb_query_and_update_2(destination_list, q, origin_details, session):
             data_portions.append(data_portion)
             continue
         for con in jdata['results'][i]['connections']:  # iterate on the connection for each destination
+            if con['departure'].split()[0] != origin_details[1]:
+                continue
             data_portion = {}
             departure_time = datetime_to_timestamp(con['departure'])
             stop_count = 0
@@ -97,8 +100,10 @@ def sbb_query_and_update_2(destination_list, q, origin_details, session):
                                                               con['legs'][leg]['exit']['arrival']) - departure_time,
                                                           'num_transfers': leg - 1,
                                                           'intermediate_stations': stop_count,
-                                                          'endnode': end_node
-                                                          }
+                                                          'endnode': end_node,
+                                                           'hovertext': con['legs'][leg]['exit']['name'] + '<br>' + core_func.sec_to_hhmm(
+                                                               datetime_to_timestamp(con['legs'][leg]['exit']['arrival']) - departure_time)
+                                                           }
                 if 'stops' not in con['legs'][leg]:
                     continue
                 if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
@@ -112,7 +117,9 @@ def sbb_query_and_update_2(destination_list, q, origin_details, session):
                                                               'travel_time': datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time,
                                                               'num_transfers': leg - 1,
                                                               'intermediate_stations': stop_count,
-                                                              'endnode': end_node
+                                                              'endnode': end_node,
+                                                              'hovertext': con['legs'][leg]['name'] + '<br>' + core_func.sec_to_hhmm(
+                                                                  datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time)
                                                               }
                     continue
 
@@ -120,17 +127,20 @@ def sbb_query_and_update_2(destination_list, q, origin_details, session):
                 for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
                     if 'arrival' not in stop:
                         continue
-                    data_portion[stop['name']] = {'destination': stop['name'],
-                                                  'lon': stop['lon'],
-                                                  'lat': stop['lat'],
-                                                  'departure': departure_time,
-                                                  'arrival': datetime_to_timestamp(stop['arrival']),
-                                                  'travel_time': datetime_to_timestamp(stop['arrival']) - departure_time,
-                                                  'num_transfers': leg,
-                                                  'intermediate_stations': stop_count,
-                                                  'endnode': 0
-                                                  }
-                    stop_count += 1
+                    travel_time = datetime_to_timestamp(stop['arrival']) - departure_time
+                    if travel_time < 86400:
+                        data_portion[stop['name']] = {'destination': stop['name'],
+                                                      'lon': stop['lon'],
+                                                      'lat': stop['lat'],
+                                                      'departure': departure_time,
+                                                      'arrival': datetime_to_timestamp(stop['arrival']),
+                                                      'travel_time': travel_time,
+                                                      'num_transfers': leg,
+                                                      'intermediate_stations': stop_count,
+                                                      'endnode': 0,
+                                                      'hovertext': stop['name'] + '<br>' + core_func.sec_to_hhmm(travel_time)
+                                                      }
+                        stop_count += 1
             data_portions.append(data_portion)
 
     # data portions contains many multiple entries; now go through and consolidate them
