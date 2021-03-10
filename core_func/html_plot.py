@@ -30,10 +30,11 @@ def make_html_map(path_to_data, origin_details):
     # read data in from a MongoDB
     pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
     mgdb_url = "mongodb+srv://admin_patty:" + pw.columns.to_list()[
-        0] + "@cluster0.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+        0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
     print(mgdb_url)
 
     mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map", origin_details)
+    print(mgdb.get_data_list())
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(columns={'destination': 'city', 'travel_time': 'duration'})
     sbb = sbb[sbb['duration'] < 86400]
     # sbb = sbb.groupby(['city']).min().reset_index()
@@ -44,13 +45,15 @@ def make_html_map(path_to_data, origin_details):
     cap_max = 60*60*6
     sbb.loc[sbb['duration'] > cap_max,'duration'] = cap_max
 
-    selectedData = ['2']
+    selectedData = ['2','4']
     selectedData = [int(i) for i in selectedData]
     if selectedData != [] or len(selectedData) != 0:
         print(selectedData)
         sbb = sbb[sbb['duration'] <= max((selectedData))*60*60]
         sbb = sbb[sbb['duration'] >= (min(selectedData)-1)*60*60]
         # if len(selectedData) > 2:
+
+    print(sbb.to_json())
 
     # swiss_url = 'https://raw.githubusercontent.com/empet/Datasets/master/swiss-cantons.geojson'
     # jdata = read_geojson(swiss_url)
@@ -104,4 +107,4 @@ def make_html_map(path_to_data, origin_details):
 
 
 if __name__ == "__main__":
-    make_html_map('', ['Zurich HB', '2021-06-26', '7:02'])
+    make_html_map('', ['Zurich HB', '2021-06-26', '7:00'])

@@ -41,7 +41,6 @@ def primary(origin_details, mgdb):
         # Initialize various
         endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
         endnodes = io_func.csv_to_set("../input_csvs/endnodes_Zurich.csv")
-        print(endnodes)
         data_set_master = set(endnodes)
 
         # Remove destinations where we already have data
@@ -52,10 +51,11 @@ def primary(origin_details, mgdb):
                 data_set_master.discard(destination)
                 pop_counter += 1
         print('discarded ', pop_counter, " destinations, out of ", (len(data_set_master)+pop_counter))
-        print('leftover ', data_set_master)
+        if pop_counter >= 2750:
+            return 1
 
         t_init = time.time()
-        dest_per_query = 220
+        dest_per_query = 210
 
         jobs = []
         for i in range(nthreads):
@@ -121,12 +121,12 @@ if __name__ =="__main__":
     mgdb = io_func.MongodbHandler("mongodb+srv://admin_patty:" + pw.columns.to_list()[
         0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map")
 
-    origin_city = ['Bern']
+    # origin_city = ['Bern']
     # origin_date = ['2021-06-25']
     # origin_time = ['6:00']
-    # origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
+    origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
     origin_date = ['2021-06-25' ,'2021-06-26']
-    origin_time = ['6:00','7:00']
+    origin_time = ['6:00','7:00', '8:00', '9:00']
     origin_details_list = []
     for city in origin_city:
         for date in origin_date:
