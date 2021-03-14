@@ -46,6 +46,15 @@ list_of_locations = {
     "Lausanne": {"lat": 46.5197, "lon": 6.6323}
 }
 
+colorbar_intervals = [0, 1, 2, 3, 4, 5, 6]
+colorbar_colors = ['#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b']
+colorbar_colors = colorbar_colors[::-1]
+colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_colors)
+bvals = np.array(colorbar_intervals)
+tickvals = [np.mean(bvals[k:k+2]) for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
+ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
+print (colorbar_input, tickvals, ticktext)
+
 pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = "mongodb+srv://admin_patty:" + pw.columns.to_list()[0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 t_init = time.time()
@@ -256,7 +265,7 @@ def update_histogram(sbb_json):
             showlegend=False,
             plot_bgcolor="#323130",
             paper_bgcolor="#323130",
-            coloraxis_colorscale='algae_r',
+            # coloraxis_colorscale='algae_r',
             dragmode="select",
             font=dict(color="white"),
             xaxis=dict(
@@ -295,13 +304,17 @@ def update_histogram(sbb_json):
     return go.Figure(
         data=[
             go.Histogram(x=xVal,
-                         # marker=dict(color=colorVal),
+                         marker=dict(color=colorbar_colors,
+                                     # colorscale='Earth',
+                                     cmax=6,
+                                     cmin=0),
                          hoverinfo="x",
                          xbins=dict(
                              start=0,
-                             end=24,
+                             end=7,
                              size=1.0
                             ),
+                         # colorscale="Earth"
                          ),
             # go.Scatter(
             #     opacity=0,
@@ -341,6 +354,7 @@ def update_graph(sbb_json, display_times):
             sbb_list.append(sbb[(sbb['duration'] <= display_times[i] * 60 * 60 ) & (sbb['duration'] >= (display_times[i] - 1) * 60 * 60)])
             # sbb_list[i] = sbb_list[i][sbb_list[i]['duration'] >= (i - 1) * 60 * 60]
         sbb = sbb_list
+    print (sbb['duration'])
 
     print('returning graph: ', time.time() - t_init)
     return go.Figure(
@@ -358,29 +372,15 @@ def update_graph(sbb_json, display_times):
                     color=sbb['duration'],
                     opacity=0.75,
                     size=7.5,
-                    # colorscale=[
-                    #     [0, "#F4EC15"],
-                    #     [0.04167, "#DAF017"],
-                    #     [0.0833, "#BBEC19"],
-                    #     [0.125, "#9DE81B"],
-                    #     [0.1667, "#80E41D"],
-                    #     [0.2083, "#66E01F"],
-                    #     [0.25, "#4CDC20"],
-                    #     [0.292, "#34D822"],
-                    #     [0.333, "#24D249"],
-                    #     [0.375, "#25D042"],
-                    #     [0.4167, "#26CC58"],
-                    #     [0.4583, "#28C86D"],
-                    #     [0.50, "#29C481"],
-                    #     [0.54167, "#2AC093"],
-                    #     [0.5833, "#2BBCA4"],
-                    #     [1.0, "#613099"],
-                    # ],
+                    colorscale=colorbar_input,
+                    cmax=6*60*60,
+                    cmin=0,
                     colorbar=dict(
                         title="Travel Time (hours)",
                         x=0.93,
                         xpad=0,
-                        nticks=6,
+                        tickvals=tickvals,
+                        ticktext=ticktext,
                         tickfont=dict(color="#d8d8d8"),
                         titlefont=dict(color="#d8d8d8"),
                         thicknessmode="pixels",
