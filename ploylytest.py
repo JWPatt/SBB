@@ -56,7 +56,7 @@ ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(
 print ('here', len(tickvals))
 
 pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
-mgdb_url = "mongodb+srv://admin_patty:" + pw.columns.to_list()[0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+mgdb_url = pw.columns.to_list()[0]
 t_init = time.time()
 
 # Layout of Dash App

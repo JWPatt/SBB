@@ -110,7 +110,7 @@ def sbb_query_and_update_2(destination_list, q, origin_details, session):
                     end_node = 0
                     if 'departure' not in con['legs'][leg]: end_node = 1
                     data_portion[con['legs'][leg]['name']] = {'destination': con['legs'][leg]['name'],
-                                                              'lon': con['legs'][leg]['lon'],
+                                                           'lon': con['legs'][leg]['lon'],
                                                               'lat': con['legs'][leg]['lat'],
                                                               'departure': departure_time,
                                                               'arrival': datetime_to_timestamp(con['legs'][leg]['arrival']),
