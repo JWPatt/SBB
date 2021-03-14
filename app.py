@@ -20,12 +20,13 @@ import os
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
 )
-CACHE_CONFIG = {
-    'CACHE_TYPE':'filesystem',
-    'CACHE_DIR': 'cache-directory'
-}
-cache = Cache()
-cache.init_app(app.server, config=CACHE_CONFIG)
+server = app.server
+# CACHE_CONFIG = {
+#     'CACHE_TYPE':'filesystem',
+#     'CACHE_DIR': 'cache-directory'
+# }
+# cache = Cache()
+# server = cache.init_app(app.server, config=CACHE_CONFIG)
 
 # Plotly mapbox public token
 mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
