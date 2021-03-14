@@ -53,7 +53,6 @@ colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_color
 bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
-print ('here', len(tickvals))
 
 pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = pw.columns.to_list()[0]
@@ -191,7 +190,6 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
         starttime = '8:00'
 
     origin_details = [selectedLocation, startdate, starttime]
-    print (origin_details)
     mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map", origin_details)
 
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
@@ -215,9 +213,7 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
 )
 def update_hidden_div(datePicked, starttime, selectedLocation, selectedData):
     t_init = time.time()
-    print('starting sbb: ', time.time() - t_init)
     sbb = global_store(datePicked, selectedData, selectedLocation, starttime)
-    print('returning sbb: ', time.time() - t_init)
     return sbb.to_json()
 
 
@@ -249,8 +245,6 @@ def update_selected_data(clickData):
     [Input("update-signal", "children")],
 )
 def update_histogram(sbb_json):
-
-    print('updating histogram: ', time.time() - t_init)
     if sbb_json:
         sbb = pd.read_json(sbb_json)
 
@@ -299,7 +293,6 @@ def update_histogram(sbb_json):
         xVal = []
         layout = go.Layout()
 
-    print('returning histogram: ', time.time() - t_init)
     return go.Figure(
         data=[
             go.Histogram(x=xVal,
@@ -337,7 +330,6 @@ def update_histogram(sbb_json):
 )
 def update_graph(sbb_json, display_times):
 
-    print('updating graph: ', time.time() - t_init)
     if not sbb_json:
         return go.Figure()
     sbb = pd.read_json(sbb_json)
@@ -353,9 +345,7 @@ def update_graph(sbb_json, display_times):
             sbb_list.append(sbb[(sbb['duration'] <= display_times[i] * 60 * 60 ) & (sbb['duration'] > (display_times[i] - 1) * 60 * 60)])
             # sbb_list[i] = sbb_list[i][sbb_list[i]['duration'] >= (i - 1) * 60 * 60]
         sbb = pd.concat(sbb_list)
-    print ("here",sbb)
 
-    print('returning graph: ', time.time() - t_init)
     return go.Figure(
         data=[
             # Data for all rides based on date and time
