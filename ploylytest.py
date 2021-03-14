@@ -51,9 +51,9 @@ colorbar_colors = ['#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa
 colorbar_colors = colorbar_colors[::-1]
 colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_colors)
 bvals = np.array(colorbar_intervals)
-tickvals = [np.mean(bvals[k:k+2]) for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
+tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
-print (colorbar_input, tickvals, ticktext)
+print ('here', len(tickvals))
 
 pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = "mongodb+srv://admin_patty:" + pw.columns.to_list()[0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
@@ -89,6 +89,7 @@ app.layout = html.Div(
                                         for i in list_of_locations
                                     ],
                                     placeholder="Select a starting location",
+                                    value='Zurich HB',
                                 )
                             ],
                         ),
@@ -147,8 +148,6 @@ app.layout = html.Div(
                                 )
                             ],
                         ),
-                        #     ],
-                        # ),
                         html.P(id="date-value"),
                         dcc.Markdown(
                             children=[
@@ -351,10 +350,10 @@ def update_graph(sbb_json, display_times):
         sbb_list = []
         display_times = [int(i) for i in display_times]
         for i in range(len(display_times)):
-            sbb_list.append(sbb[(sbb['duration'] <= display_times[i] * 60 * 60 ) & (sbb['duration'] >= (display_times[i] - 1) * 60 * 60)])
+            sbb_list.append(sbb[(sbb['duration'] <= display_times[i] * 60 * 60 ) & (sbb['duration'] > (display_times[i] - 1) * 60 * 60)])
             # sbb_list[i] = sbb_list[i][sbb_list[i]['duration'] >= (i - 1) * 60 * 60]
-        sbb = sbb_list
-    print (sbb['duration'])
+        sbb = pd.concat(sbb_list)
+    print ("here",sbb)
 
     print('returning graph: ', time.time() - t_init)
     return go.Figure(
@@ -381,27 +380,27 @@ def update_graph(sbb_json, display_times):
                         xpad=0,
                         tickvals=tickvals,
                         ticktext=ticktext,
-                        tickfont=dict(color="#d8d8d8"),
-                        titlefont=dict(color="#d8d8d8"),
+                        tickfont=dict(color="#000000"),
+                        titlefont=dict(color="#000000"),
                         thicknessmode="pixels",
                     ),
                 ),
             ),
             # Plot of important locations on the map
-            Scattermapbox(
-                lat=[list_of_locations[i]["lat"] for i in list_of_locations],
-                lon=[list_of_locations[i]["lon"] for i in list_of_locations],
-                mode="markers",
-                hoverinfo="text",
-                text=[i for i in list_of_locations],
-                marker=dict(size=8, color="#ffa0a0"),
-            ),
+            # Scattermapbox(
+            #     lat=[list_of_locations[i]["lat"] for i in list_of_locations],
+            #     lon=[list_of_locations[i]["lon"] for i in list_of_locations],
+            #     mode="markers",
+            #     hoverinfo="text",
+            #     text=[i for i in list_of_locations],
+            #     marker=dict(size=8, color="#ffa0a0"),
+            # ),
         ],
         layout=Layout(
             autosize=True,
             margin=go.layout.Margin(l=0, r=35, t=0, b=0),
             showlegend=False,
-            coloraxis_colorscale='algae_r',
+            # coloraxis_colorscale='algae_r',
             mapbox=dict(
                 accesstoken=mapbox_access_token,
                 center=dict(lat=lat_default, lon=lon_default),  # 40.7272  # -73.991251

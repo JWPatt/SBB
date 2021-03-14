@@ -111,7 +111,11 @@ class MongodbHandler:
                 print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
                 input()
             else:
-                data = list(self.time.find())
+                data = list(self.time.find({},{'destination':1,
+                                               'lat':1,
+                                               'lon':1,
+                                               'travel_time':1,
+                                               'hovertext':1}))
         else:
             col = io_func.mongodb_loc(origin_details)
             print(self.time)
