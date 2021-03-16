@@ -10,7 +10,7 @@ country. Given an origin city, starting time, and day of the month, a map is bui
 to each other station.
 
 Click anywhere on the image to view the interactive map.
-[![alt text](example_results/Screen Shot 2021-03-16 at 23.02.50.png)](https://jwpatt.github.io/SBB/)
+[![alt text](example_results/homepage_example.png)](https://jwpatt.github.io/SBB/)
 
 SBB gives each user 1000 free API requests per day, but there are ~30,000 destinations in the network. The original 
 version of this project cleverly determined which stations were end nodes and queried only these, getting data for each
