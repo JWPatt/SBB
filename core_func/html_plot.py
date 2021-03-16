@@ -100,7 +100,7 @@ def make_html_map(path_to_data, origin_details):
         fig.show()
 
     # fig.write_html("example_results/zurich_summer_saturday_0700.html",include_mathjax = False)
-    fig.write_html("templates/output_map.html", include_mathjax=False)
+    fig.write_html("templates/index.html", include_mathjax=False)
 
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return graphJSON

@@ -1,6 +1,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+# import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 
@@ -8,13 +9,11 @@ from dash.dependencies import Input, Output
 from plotly import graph_objs as go
 from plotly.graph_objs import *
 from datetime import datetime as dt
-from flask_caching import Cache
-
+# from flask_caching import Cache
 
 import io_func
 import core_func
 import time
-import os
 
 
 app = dash.Dash(
@@ -41,8 +40,8 @@ list_of_locations = {
     "Lausanne": {"lat": 46.5197, "lon": 6.6323}
 }
 
-colorbar_intervals = [0, 1, 2, 3, 4, 5, 6]
-colorbar_colors = ['#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b']
+colorbar_intervals = [0, 1, 2, 3, 4, 5, 6, 7]
+colorbar_colors = ['#000000', '#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b']
 colorbar_colors = colorbar_colors[::-1]
 colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_colors)
 bvals = np.array(colorbar_intervals)
@@ -64,9 +63,6 @@ app.layout = html.Div(
                 html.Div(
                     className="four columns div-user-controls",
                     children=[
-                        html.Img(
-                            className="logo", src=app.get_asset_url("dash-logo-new.png")
-                        ),
                         html.H2("SBB Travel Time Map"),
                         html.P(
                             """Select a city of origin, a date of travel, and departure time. Filter the results by 
@@ -101,7 +97,6 @@ app.layout = html.Div(
                                 )
                             ],
                         ),
-
                         html.Div(
                             className="div-for-dropdown",
                             children=[
@@ -145,6 +140,7 @@ app.layout = html.Div(
                             ]
                         ),
                     ],
+                    # style={'width':'25vw'}
                 ),
                 # Column for app graphs and plots
                 html.Div(
@@ -159,6 +155,7 @@ app.layout = html.Div(
                         ),
                         dcc.Graph(id="histogram"),
                     ],
+                    # style={'width':'72.5vw','margin-left':'0vw','margin-right':'0px'}
                 ),
             ],
         ),
@@ -166,7 +163,7 @@ app.layout = html.Div(
     ]
 )
 
-@cache.memoize()
+# @cache.memoize()
 def global_store(datePicked, selectedData, selectedLocation, starttime):
     date_picked = dt.strptime(datePicked, "%Y-%m-%d")
 
@@ -186,10 +183,6 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
         columns={'destination': 'city', 'travel_time': 'duration'})
 
-    # cap the maximum duration which gets colored to maintain appropriate colors in majority of points
-    # cap_max = 60 * 60 * 6
-    # sbb.loc[sbb['duration'] > cap_max, 'duration'] = cap_max
-
     return sbb
 
 
@@ -203,7 +196,6 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
     ],
 )
 def update_hidden_div(datePicked, starttime, selectedLocation, selectedData):
-    t_init = time.time()
     sbb = global_store(datePicked, selectedData, selectedLocation, starttime)
     return sbb.to_json()
 
@@ -267,18 +259,6 @@ def update_histogram(sbb_json):
                 rangemode="nonnegative",
                 zeroline=False,
             ),
-            # annotations=[
-            #     dict(
-            #         x=xi,
-            #         y=yi,
-            #         text=str(yi),
-            #         xanchor="center",
-            #         yanchor="bottom",
-            #         showarrow=False,
-            #         font=dict(color="white"),
-            #     )
-            #     for xi, yi in zip(xVal, yVal)
-            # ],
         )
     else:
         xVal = []
@@ -288,8 +268,7 @@ def update_histogram(sbb_json):
         data=[
             go.Histogram(x=xVal,
                          marker=dict(color=colorbar_colors,
-                                     # colorscale='Earth',
-                                     cmax=6,
+                                     cmax=7,
                                      cmin=0),
                          hoverinfo="x",
                          xbins=dict(
@@ -297,17 +276,7 @@ def update_histogram(sbb_json):
                              end=7,
                              size=1.0
                             ),
-                         # colorscale="Earth"
                          ),
-            # go.Scatter(
-            #     opacity=0,
-            #     x=xVal,
-            #     y=yVal / 2,
-            #     hoverinfo="none",
-            #     mode="markers",
-            #     marker=dict(color="rgb(66, 134, 244, 0)", symbol="square", size=40),
-            #     visible=True,
-            # ),
         ],
         layout=layout,
     )
@@ -324,9 +293,9 @@ def update_graph(sbb_json, display_times):
     if not sbb_json:
         return go.Figure()
     sbb = pd.read_json(sbb_json)
-    zoom = 6.75
-    lat_default = 46.8181877
-    lon_default = 8.2275124
+    zoom = 6.7
+    lat_default = 46.825013334
+    lon_default = 8.531033703
     bearing = 0
 
     if display_times != [] or len(display_times) != 0:
@@ -334,10 +303,10 @@ def update_graph(sbb_json, display_times):
         display_times = [int(i) for i in display_times]
         for i in range(len(display_times)):
             sbb_list.append(sbb[(sbb['duration'] <= display_times[i] * 60 * 60 ) & (sbb['duration'] > (display_times[i] - 1) * 60 * 60)])
-            # sbb_list[i] = sbb_list[i][sbb_list[i]['duration'] >= (i - 1) * 60 * 60]
         sbb = pd.concat(sbb_list)
 
-    return go.Figure(
+    # end_fig = go.Figure(
+        return go.Figure(
         data=[
             # Data for all rides based on date and time
             Scattermapbox(
@@ -353,16 +322,18 @@ def update_graph(sbb_json, display_times):
                     opacity=0.75,
                     size=7.5,
                     colorscale=colorbar_input,
-                    cmax=6*60*60,
+                    cmax=7*60*60,
                     cmin=0,
                     colorbar=dict(
                         title="Travel Time (hours)",
-                        x=0.93,
+                        x=0.95,
                         xpad=0,
                         tickvals=tickvals,
                         ticktext=ticktext,
-                        tickfont=dict(color="#000000"),
-                        titlefont=dict(color="#000000"),
+                        tickfont=dict(color="#000000",
+                                      size=14),
+                        titlefont=dict(color="#000000",
+                                       size=12),
                         thicknessmode="pixels",
                     ),
                 ),
@@ -424,6 +395,8 @@ def update_graph(sbb_json, display_times):
             ],
         ),
     )
+    # end_fig.write_html("index.html", include_mathjax=False)
+    # return end_fig
 
 
 if __name__ == "__main__":
