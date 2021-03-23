@@ -11,6 +11,8 @@ from plotly.graph_objs import *
 from datetime import datetime as dt
 # from flask_caching import Cache
 
+import io_func
+import core_func
 import time
 
 
@@ -41,10 +43,13 @@ list_of_locations = {
 colorbar_intervals = [0, 1, 2, 3, 4, 5, 6, 7]
 colorbar_colors = ['#000000', '#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b']
 colorbar_colors = colorbar_colors[::-1]
+colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_colors)
 bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
-pw = "2"
+
+pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
+mgdb_url = pw.columns.to_list()[0]
 t_init = time.time()
 
 # Layout of Dash App
