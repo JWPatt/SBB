@@ -46,7 +46,9 @@ colorbar_colors = colorbar_colors[::-1]
 bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
-pw = "2"
+
+pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
+mgdb_url = pw.columns.to_list()[0]
 t_init = time.time()
 
 # Layout of Dash App
