@@ -52,7 +52,7 @@ ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(
 pw = os.environ.get('MONGODB_URI', None)
 # print (pw)
 if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
-# mgdb_url = pw.columns.to_list()[0]
+mgdb_url = pw
 t_init = time.time()
 
 # Layout of Dash App
@@ -181,7 +181,10 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
         starttime = '8:00'
 
     origin_details = [selectedLocation, startdate, starttime]
-    sbb=1
+    mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map", origin_details)
+
+    sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
+        columns={'destination': 'city', 'travel_time': 'duration'})
 
     return sbb
 
