@@ -51,7 +51,7 @@ ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(
 # print('time for heroku')
 pw = os.environ.get('MONGODB_URI', None)
 # print (pw)
-# if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
+if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 # mgdb_url = pw.columns.to_list()[0]
 t_init = time.time()
 
