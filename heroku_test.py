@@ -10,6 +10,7 @@ from plotly import graph_objs as go
 from plotly.graph_objs import *
 from datetime import datetime as dt
 # from flask_caching import Cache
+import dnspython
 
 import io_func
 # import core_func
