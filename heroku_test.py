@@ -53,8 +53,6 @@ pw = os.environ.get('MONGODB_URI', None)
 # print (pw)
 if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = pw
-print(mgdb_url)
-sys.stdout.flush()
 t_init = time.time()
 
 # Layout of Dash App
@@ -187,6 +185,7 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
 
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
         columns={'destination': 'city', 'travel_time': 'duration'})
+    print(sbb)
 
     return sbb
 
