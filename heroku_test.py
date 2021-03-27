@@ -309,7 +309,7 @@ def update_graph(sbb_json, display_times):
         sbb = pd.concat(sbb_list)
 
     # end_fig = go.Figure(
-        return go.Figure(
+    return go.Figure(
         data=[
             # Data for all rides based on date and time
             Scattermapbox(
