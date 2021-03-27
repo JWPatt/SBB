@@ -53,6 +53,8 @@ pw = os.environ.get('MONGODB_URI', None)
 # print (pw)
 if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = pw
+print(mgdb_url)
+sys.stdout.flush()
 t_init = time.time()
 
 # Layout of Dash App
@@ -402,4 +404,4 @@ def update_graph(sbb_json, display_times):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=False)
+    app.run_server(debug=True)
