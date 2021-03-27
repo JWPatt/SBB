@@ -13,7 +13,7 @@ from datetime import datetime as dt
 import dns
 
 import io_func
-# import core_func
+import core_func
 import time
 import os
 
@@ -45,6 +45,7 @@ list_of_locations = {
 colorbar_intervals = [0, 1, 2, 3, 4, 5, 6, 7]
 colorbar_colors = ['#000000', '#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b']
 colorbar_colors = colorbar_colors[::-1]
+colorbar_input = core_func.discrete_colorscale(colorbar_intervals,colorbar_colors)
 bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
@@ -326,6 +327,7 @@ def update_graph(sbb_json, display_times):
                     color=sbb['duration'],
                     opacity=0.75,
                     size=7.5,
+                    colorscale=colorbar_input,
                     cmax=7*60*60,
                     cmin=0,
                     colorbar=dict(

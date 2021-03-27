@@ -14,6 +14,7 @@ from datetime import datetime as dt
 import io_func
 import core_func
 import time
+import os
 
 
 app = dash.Dash(
@@ -48,8 +49,11 @@ bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
 
-pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
-mgdb_url = pw.columns.to_list()[0]
+# print('time for heroku')
+pw = os.environ.get('MONGODB_URI', None)
+# print (pw)
+if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
+mgdb_url = pw
 t_init = time.time()
 
 # Layout of Dash App
@@ -306,7 +310,7 @@ def update_graph(sbb_json, display_times):
         sbb = pd.concat(sbb_list)
 
     # end_fig = go.Figure(
-        return go.Figure(
+    return go.Figure(
         data=[
             # Data for all rides based on date and time
             Scattermapbox(
