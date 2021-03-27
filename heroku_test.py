@@ -12,7 +12,7 @@ from datetime import datetime as dt
 # from flask_caching import Cache
 
 import io_func
-import core_func
+# import core_func
 import time
 import os
 
