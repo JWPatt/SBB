@@ -117,14 +117,16 @@ if __name__ =="__main__":
     # primary(origin_details, mgdb)
     # print(time.time() - t_init)
 
-    pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
-    mgdb = io_func.MongodbHandler("mongodb+srv://admin_patty:" + pw.columns.to_list()[
-        0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map")
+    # pw = pd.read_csv("../io_func/secret_mgdb_pw.csv")
+    # mgdb = io_func.MongodbHandler("mongodb+srv://admin_patty:" + pw.columns.to_list()[
+    #     0] + "@clusteruetliberg.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map")
 
-    # origin_city = ['Bern']
+    mgdb = io_func.MongodbHandler(pd.read_csv("../io_func/secret_mgdb_pw.csv"), "SBB_time_map")
+
+    origin_city = ['Sion']
     # origin_date = ['2021-06-25']
     # origin_time = ['6:00']
-    origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
+    # origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
     origin_date = ['2021-06-25' ,'2021-06-26']
     origin_time = ['6:00','7:00', '8:00', '9:00']
     origin_details_list = []

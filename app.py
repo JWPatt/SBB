@@ -1,15 +1,15 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-# import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from plotly import graph_objs as go
 from plotly.graph_objs import *
 from datetime import datetime as dt
 # from flask_caching import Cache
+import dns
 
 import io_func
 import core_func
@@ -28,17 +28,19 @@ server = app.server
 # cache = Cache()
 # server = cache.init_app(app.server, config=CACHE_CONFIG)
 
+
 # Plotly mapbox public token
 mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
 
-# Dictionary of important locations in New York
+# List of origin locations in Switzerland
 list_of_locations = {
     "Zurich HB": {"lat": 47.3779, "lon": 8.5403},
     "Bern": {"lat": 46.9490, "lon": 7.4385},
     "Geneva": {"lat": 46.2044, "lon": 6.1413},
     "Lugano": {"lat": 46.0037, "lon": 8.9511},
     "Basel": {"lat": 47.5596, "lon": 7.5886},
-    "Lausanne": {"lat": 46.5197, "lon": 6.6323}
+    "Lausanne": {"lat": 46.5197, "lon": 6.6323},
+    "Sion": {"lat": 46.2331, "lon": 7.3606},
 }
 
 colorbar_intervals = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -49,9 +51,8 @@ bvals = np.array(colorbar_intervals)
 tickvals = [np.mean(bvals[k:k+2])*60*60 for k in range(len(bvals)-1)] #position with respect to bvals where ticktext is displayed
 ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(bvals)-2)]+[f'>{bvals[-2]}']
 
-# print('time for heroku')
+# Get MongoDB key from the Heroku environmen variable, else use a local file (not on github)
 pw = os.environ.get('MONGODB_URI', None)
-# print (pw)
 if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 mgdb_url = pw
 t_init = time.time()
@@ -143,6 +144,21 @@ app.layout = html.Div(
                                 "Source: [search.ch](https://timetable.search.ch)"
                             ]
                         ),
+                        # html.Div(
+                        #     className="div-for-dropdown",
+                        #     children=[
+                        #         # Dropdown for locations on map
+                        #         dcc.Dropdown(
+                        #             id="new-location-dropdown",
+                        #             options=[
+                        #                 {"label": i, "value": i} for i in ['Martigny', 'Chur']
+                        #             ],
+                        #             placeholder="Select a starting location",
+                        #             # value='Zurich HB',
+                        #         )
+                        #     ],
+                        # ),
+
                     ],
                     # style={'width':'25vw'}
                 ),
@@ -165,8 +181,11 @@ app.layout = html.Div(
         ),
         html.Div(id='update-signal', style={'display':'none'})
     ]
+
+
 )
 
+# Get data from MongoDB, process for use by plotly
 # @cache.memoize()
 def global_store(datePicked, selectedData, selectedLocation, starttime):
     date_picked = dt.strptime(datePicked, "%Y-%m-%d")
@@ -186,10 +205,11 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
 
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
         columns={'destination': 'city', 'travel_time': 'duration'})
-
     return sbb
 
 
+# Getting the data is expensive; get it once and store the data in hidden div for use by other callbacks
+# Outputs to "update-signal", signalling the plots to update using the new data.
 @app.callback(
     Output("update-signal", "children"),
     [
@@ -203,11 +223,30 @@ def update_hidden_div(datePicked, starttime, selectedLocation, selectedData):
     sbb = global_store(datePicked, selectedData, selectedLocation, starttime)
     return sbb.to_json()
 
+# # A new origin city triggers a different update signal
+# @app.callback(
+#     Output("new-location-signal", "children"),
+#     Input("new-location-submit", "value"),
+#     [
+#         State("date-dropdown", "date"),
+#         State("starttime-dropdown", "value"),
+#         State("location-dropdown", "value"),
+#         State("max-time-dropdown", "value"),
+#     ],
+# )
+# def update_hidden_div(selectedNewLocation, datePicked, selectedData, selectedLocation, starttime):
+#     if selectedNewLocation:
+#         sbb = global_store(selectedNewLocation, datePicked, selectedData, selectedLocation, starttime)
+#     return sbb.to_json()
+
 
 # Selected Data in the Histogram updates the Values in the Hours selection dropdown menu
 @app.callback(
     Output("max-time-dropdown", "value"),
-    [Input("histogram", "selectedData"), Input("histogram", "clickData")],
+    [
+        Input("histogram", "selectedData"),
+        Input("histogram", "clickData")
+    ],
 )
 def update_bar_selector(value, clickData):
     holder = []
@@ -293,7 +332,7 @@ def update_histogram(sbb_json):
      Input("max-time-dropdown", "value")]
 )
 def update_graph(sbb_json, display_times):
-
+    t_init = time.time()
     if not sbb_json:
         return go.Figure()
     sbb = pd.read_json(sbb_json)
@@ -310,6 +349,8 @@ def update_graph(sbb_json, display_times):
         sbb = pd.concat(sbb_list)
 
     # end_fig = go.Figure(
+
+    print(time.time()-t_init, 'before figure')
     return go.Figure(
         data=[
             # Data for all rides based on date and time
@@ -329,7 +370,7 @@ def update_graph(sbb_json, display_times):
                     cmax=7*60*60,
                     cmin=0,
                     colorbar=dict(
-                        title="Travel Time (hours)",
+                        title="Travel Time (hours) ",
                         x=0.95,
                         xpad=0,
                         tickvals=tickvals,
@@ -399,6 +440,7 @@ def update_graph(sbb_json, display_times):
             ],
         ),
     )
+    # print(time.time()-t_init, 'after figure')
     # end_fig.write_html("index.html", include_mathjax=False)
     # return end_fig
 
