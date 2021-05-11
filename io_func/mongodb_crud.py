@@ -139,6 +139,7 @@ class MongodbHandler:
             data = list(data.find())
         data_dict = {}
         for row in data:
+            # would using row.pop('destination') be better here? Saves memory at the cost of speed.
             data_dict[row['destination']] = row
         return data_dict
 
@@ -150,6 +151,17 @@ class MongodbHandler:
         for row in data:
             data_set.add(row['destination'])
         return data_set
+
+    # Get dict of end-node destinations from db given a collection name
+    def get_endnode_dict(self, col):
+        data = getattr(self.db, col)
+        data = list(data.find({},{'destination':1,'_id':0,'lat':1,'lon':1}))
+        data_dict = {}
+        for row in data:
+            # would using row.pop('destination') be better here? Saves memory at the cost of speed.
+            if 'destination' in row:
+                data_dict[row['destination']] = row
+        return data_dict
 
 
     # Get a set of known destinations from db given an origin city, date, and time
@@ -206,11 +218,36 @@ def write_data_line_to_mongodb(url, database_name, origin_details, data_dict):
                 time.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
 
 
+def write_osrm_line_to_mongodb(url, database_name, origin_city, data_dict):
+    client = MongoClient(url)
+    db = getattr(client, database_name)  # SBB_time_map
+    dest = getattr(db, ('osrm_' + origin_city.replace(' ', '_')))  # Destination
+
+    if dest == '':
+        print('Attempting to write to DB without an origin_details - DB doesn\'t know where to look!')
+        input()
+    elif 'destination' in data_dict:
+
+        # self.time.insert_one(data_dict)  # faster to just insert every time, but creates many duplicates
+
+        if data_dict['travel_time'] < 86400:
+            if dest.count_documents({'destination': data_dict['destination']}) == 0:
+                dest.insert_one(data_dict)
+            elif dest.count_documents({'destination': data_dict['destination']}) == 1:
+                print('updating')
+                dest.update_one({'destination': data_dict['destination'],'travel_time':{"$gt":data_dict['travel_time']}}, {'$set':data_dict})
+            elif dest.count_documents({'destination': data_dict['destination']}) > 1:
+                print('deleting')
+                fastest_entry = list(dest.find({'destination': data_dict['destination']}).sort('travel_time', 1).limit(1))[0]
+                dest.delete_many({'destination': data_dict['destination'], '_id': {"$ne": fastest_entry['_id']}})
+                dest.update_one( {'destination': data_dict['destination'], 'travel_time': {"$gt": data_dict['travel_time']}}, {'$set': data_dict})
+
+
 
 if __name__ == "__main__":
-    pw = pd.read_csv("secret_mgdb_pw.csv")
+    pw = pd.read_csv("secret_mgdb_pw_local.csv")
     print(pw.columns.to_list()[0])
-    handler = MongodbHandler.init_and_set_col("mongodb+srv://admin_patty:"+pw.columns.to_list()[0]+"@cluster0.erwru.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", "SBB_time_map", ['Zurich HB', '2021-06-25', '7:13'])
+    handler = MongodbHandler.init_and_set_col(pw, "SBB_time_map", ['Zurich HB', '2021-06-25', '7:00'])
     # pprint(handler.db_tree())
     print(handler.client.test)
     # pprint (handler.get_destination_set())

@@ -6,6 +6,7 @@ import io_func
 import core_func
 from core_func.sbb_api import sbb_query_and_update
 from core_func.sbb_api_2 import sbb_query_and_update_2
+from core_func.sbb_api_2_class import sbb_api_manager
 from pprint import pprint
 import requests
 import pandas as pd
@@ -38,6 +39,9 @@ def primary(origin_details, mgdb):
         retry = Retry(connect=1, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
 
+        # Create sbb api class
+        sbb_api_2 = sbb_api_manager(session)
+
         # Initialize various
         endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
         endnodes = io_func.csv_to_set("../input_csvs/endnodes_Zurich.csv")
@@ -62,7 +66,7 @@ def primary(origin_details, mgdb):
             if len(data_set_master) > 0:
                 data_list = list(data_set_master)[0:dest_per_query]
                 data_set_master.difference_update(set(data_list))
-                job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details,session))
+                job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
                 jobs.append(job)
 
         results = {}
@@ -72,12 +76,12 @@ def primary(origin_details, mgdb):
             data_portion, td_get = job.get()
             core_func.update_dict_min_duration(results, data_portion)
             data_set_master.difference_update(data_portion.keys())
-            print ('(',len(data_set_master),' destinations remaining)')
+            print('(',len(data_set_master),' destinations remaining)')
             try:
                 if len(data_list) > 0:
                     data_list = list(data_set_master)[0:dest_per_query]
                     data_set_master.difference_update(set(data_list))
-                    job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details,session))
+                    job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
                     jobs.append(job)
             except IndexError:
                 print('no more jobs to add')
@@ -87,10 +91,10 @@ def primary(origin_details, mgdb):
         while len(data_list) >= 1:
             data_list = list(data_set_master)[0:dest_per_query]
             data_set_master.difference_update(set(data_list))
-            job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details, session))
+            job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
 
         t_init = time.time()
-        mgdb.write_data_dict_of_dict(results)
+        # mgdb.write_data_dict_of_dict(results)
         print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(index) + 'API queries')
 
 
@@ -123,12 +127,12 @@ if __name__ =="__main__":
 
     mgdb = io_func.MongodbHandler(pd.read_csv("../io_func/secret_mgdb_pw.csv"), "SBB_time_map")
 
-    origin_city = ['Sion']
+    origin_city = ['Locarno']
     # origin_date = ['2021-06-25']
     # origin_time = ['6:00']
     # origin_city = ['Zurich HB', 'Bern', 'Geneva', 'Lugano', 'Basel', 'Lausanne']
-    origin_date = ['2021-06-25' ,'2021-06-26']
-    origin_time = ['6:00','7:00', '8:00', '9:00']
+    origin_date = ['2021-06-25' ]
+    origin_time = ['7:00']
     origin_details_list = []
     for city in origin_city:
         for date in origin_date:

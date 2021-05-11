@@ -53,7 +53,9 @@ ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(
 
 # Get MongoDB key from the Heroku environmen variable, else use a local file (not on github)
 pw = os.environ.get('MONGODB_URI', None)
-if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
+print(pw)
+if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw_local.csv")
+print (pw)
 mgdb_url = pw
 t_init = time.time()
 
@@ -446,4 +448,4 @@ def update_graph(sbb_json, display_times):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=True, host='0.0.0.0', port=5000)

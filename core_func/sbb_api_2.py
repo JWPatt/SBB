@@ -174,5 +174,6 @@ def datetime_to_timestamp(datetime_str):
 
 
 if __name__ == "__main__":
-    test = (sbb_query_and_update_2(['Bern', 'Thun', 'Interlaken Ost'], 'q', ['Zurich HB', '2021-06-25', '7:00']))
+    session = requests.Session()
+    test = (sbb_query_and_update_2(['Bern', 'Thun', 'Interlaken Ost'], 'q', ['Zurich HB', '2021-06-25', '7:00'], session))
     pprint(test)
