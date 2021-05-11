@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
             t_init = time.time()
             jobs = []
-            for i in range(0, 4):
+            for i in range(0, 10):
                 # job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details, session))
                 # jobs.append(job)
                 jobs.append(asyncio.ensure_future(sbb_api_async(data_list, q, origin_details, session)))

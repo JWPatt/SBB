@@ -7,14 +7,17 @@ import core_func
 from core_func.sbb_api import sbb_query_and_update
 from core_func.sbb_api_2 import sbb_query_and_update_2
 from core_func.sbb_api_2_class import sbb_api_manager
+from core_func.sbb_api_2_asyncio import sbb_api_async
 from pprint import pprint
 import requests
 import pandas as pd
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+import aiohttp
+import asyncio
 
 
-def primary(origin_details, mgdb):
+async def primary(origin_details, mgdb):
 
     if mp.cpu_count() < 2:
         print('Function not set up for less than 2 threads! Terminating.')
@@ -34,68 +37,44 @@ def primary(origin_details, mgdb):
         nthreads = 3
         pool = mp.Pool(nthreads)
 
-        # Begin http session
-        session = requests.Session()
-        retry = Retry(connect=1, backoff_factor=0.5)
-        adapter = HTTPAdapter(max_retries=retry)
 
-        # Create sbb api class
-        sbb_api_2 = sbb_api_manager(session)
 
-        # Initialize various
-        endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
-        endnodes = io_func.csv_to_set("../input_csvs/endnodes_Zurich.csv")
-        data_set_master = set(endnodes)
+        async with aiohttp.ClientSession() as session:
 
-        # Remove destinations where we already have data
-        known_destinations = mgdb.get_destination_set(origin_details)
-        pop_counter = 0
-        for destination in set(endnodes):
-            if destination in known_destinations:
-                data_set_master.discard(destination)
-                pop_counter += 1
-        print('discarded ', pop_counter, " destinations, out of ", (len(data_set_master)+pop_counter))
-        if pop_counter >= 2750:
-            return 1
+            # Initialize various
+            endnodes = (mgdb.get_endnode_set('endnodes_Zurich'))
+            endnodes = io_func.csv_to_set("../input_csvs/endnodes_Zurich.csv")
+            data_set_master = set(endnodes)
 
-        t_init = time.time()
-        dest_per_query = 210
+            # Remove destinations where we already have data
+            known_destinations = mgdb.get_destination_set(origin_details)
+            pop_counter = 0
+            for destination in set(endnodes):
+                if destination in known_destinations:
+                    data_set_master.discard(destination)
+                    pop_counter += 1
+            print('discarded ', pop_counter, " destinations, out of ", (len(data_set_master)+pop_counter))
+            if pop_counter >= 2750:
+                return 1
 
-        jobs = []
-        for i in range(nthreads):
-            if len(data_set_master) > 0:
-                data_list = list(data_set_master)[0:dest_per_query]
-                data_set_master.difference_update(set(data_list))
-                job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
-                jobs.append(job)
+            t_init = time.time()
+            dest_per_query = 50
 
-        results = {}
-        index = 0
-        for job in jobs:
-            index += 1
-            data_portion, td_get = job.get()
-            core_func.update_dict_min_duration(results, data_portion)
-            data_set_master.difference_update(data_portion.keys())
-            print('(',len(data_set_master),' destinations remaining)')
-            try:
-                if len(data_list) > 0:
-                    data_list = list(data_set_master)[0:dest_per_query]
-                    data_set_master.difference_update(set(data_list))
-                    job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
-                    jobs.append(job)
-            except IndexError:
-                print('no more jobs to add')
-        pool.close()
-        pool.join()
+            jobs = []
 
-        while len(data_list) >= 1:
-            data_list = list(data_set_master)[0:dest_per_query]
-            data_set_master.difference_update(set(data_list))
-            job = pool.apply_async(sbb_api_2.sbb_query_and_update_2, (data_list, q, origin_details))
+            destination_chunks = [list(data_set_master)[i:i + dest_per_query] for i in range(0, len(data_set_master), dest_per_query)]
+            # destination_chunks = [list(data_set_master)[i:i + dest_per_query] for i in range(0, 400, dest_per_query)]
 
-        t_init = time.time()
+            for dest_list in destination_chunks:
+                jobs.append(asyncio.ensure_future(sbb_api_async(dest_list, q, origin_details, session)))
+
+            results = await asyncio.gather(*jobs)
+
+        print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(len(destination_chunks)) + 'API queries')
+
         # mgdb.write_data_dict_of_dict(results)
-        print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(index) + 'API queries')
+        print('Time to write to mgdb: ' + str(time.time() - t_init) + ' seconds.')
+
 
 
 
@@ -142,4 +121,6 @@ if __name__ =="__main__":
     for origin_details in origin_details_list:
         print(origin_details)
         mgdb.set_col(origin_details)
-        success = core_func.primary(origin_details, mgdb)
+        # success = core_func.primary(origin_details, mgdb)
+
+        success = asyncio.run(core_func.primary(origin_details, mgdb))
