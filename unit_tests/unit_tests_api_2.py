@@ -1,6 +1,6 @@
 import unittest
 import requests
-import core_func.sbb_api_2_asyncio
+import core_func.sbb_api_asyncio
 import json
 import pandas as pd
 import aiohttp
@@ -14,7 +14,7 @@ class TestStringMethods(unittest.TestCase):
     origin_details = ['Zurich HB', '2021-06-25', '7:00']
     destination_list = ['Bern', 'Thun', 'Interlaken Ost']
 
-    url = core_func.sbb_api_2_asyncio.create_url(origin_details, destination_list)
+    url = core_func.sbb_api_asyncio.create_url(origin_details, destination_list)
 
     response = session.get(url)
     jdata = response.json()
@@ -25,7 +25,7 @@ class TestStringMethods(unittest.TestCase):
     with open('api_get_json.txt') as infile:
         jdata_test_template = json.load(infile)
 
-    results = await core_func.sbb_api_2_asyncio.process_response(response)
+    results = await core_func.sbb_api_asyncio.process_response(response)
     pd.DataFrame(results).to_json('processed_json.txt')
 
 

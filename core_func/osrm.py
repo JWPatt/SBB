@@ -4,7 +4,7 @@ import os
 import sys
 import io_func
 import core_func
-from core_func.sbb_api import sbb_query_and_update
+from core_func.sbb_api_alternative import sbb_query_and_update
 from core_func.sbb_api_2 import sbb_query_and_update_2
 from pprint import pprint
 import requests

@@ -4,10 +4,10 @@ import os
 import sys
 import io_func
 import core_func
-from core_func.sbb_api import sbb_query_and_update
+from core_func.sbb_api_alternative import sbb_query_and_update
 from core_func.sbb_api_2 import sbb_query_and_update_2
 from core_func.sbb_api_2_class import sbb_api_manager
-from core_func.sbb_api_2_asyncio import async_query_and_process
+from core_func.sbb_api_asyncio import async_query_and_process
 from pprint import pprint
 import requests
 import pandas as pd
@@ -47,7 +47,7 @@ def primary_wrapper(origin_details, mgdb):
         # t_init = time.time()
         dest_per_query = 200
 
-        results = asyncio.run(core_func.sbb_api_2_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
+        results = asyncio.run(core_func.sbb_api_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
 
     # except KeyboardInterrupt or EOFError:
     #     mgdb.write_data_dict_of_dict(results)
