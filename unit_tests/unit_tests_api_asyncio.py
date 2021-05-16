@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 import requests
 import core_func.sbb_api_asyncio
 import json
@@ -19,21 +20,31 @@ class TestStringMethods(unittest.TestCase):
     response = session.get(url)
     jdata = response.json()
 
-    # with open('api_get_json.txt', 'w') as outfile:
+    # Uncomment to set the response json file to which we compare the API's response
+    # with open('api_get_json.json', 'w') as outfile:
     #     json.dump(jdata, outfile)
 
+    # Load the json to which we compare the API's response
     with open('api_get_json.txt') as infile:
         jdata_test_template = json.load(infile)
 
-    results = await core_func.sbb_api_asyncio.process_response(response)
-    pd.DataFrame(results).to_json('processed_json.txt')
+    processed_results = asyncio.run(core_func.sbb_api_asyncio.process_response(response, jdata_test_template))
+    print(processed_results)
+
+    # Uncomment to set the processed response json file to which we compare the APIs response
+    # with open('api_get_json.json', 'w') as outfile:
+    #     json.dump(jdata, outfile)
+
+
+    # results = asyncio.run(core_func.sbb_api_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
+    # pd.DataFrame(results).to_json('processed_json.txt')
 
 
 
-    def test_create_api2_url(self):
+    def test_create_api_url(self):
         self.assertEqual(True, isinstance(self.url, str))
 
-    def test_api_2_get(self):
+    def test_api_get(self):
         self.assertEqual(self.response.status_code,200)
 
     def test_jdata(self):

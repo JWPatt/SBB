@@ -41,7 +41,7 @@ async def async_query_and_process(origin_details, destination_list, session):
     t_init = time.time()
     async with session.get(url) as response:
         print(response)
-        output_data_portion = await process_response(response)
+        output_data_portion = await asyncio_process_response(response)
         td_get = time.time() - t_init
     return output_data_portion, td_get
 
@@ -58,9 +58,17 @@ def create_url (origin_details, destination_list):
     return url
 
 
-# Processes response and converts the json into a list of destinations with coordinates and travel times
-async def process_response(response):
+# Processes the response using asyncio
+async def asyncio_process_response(response):
     jdata = await response.json()
+    output = process_response(response, jdata)
+    print( "returning output")
+    time.sleep(1)
+    return output
+
+
+# Processes response and converts the json into a list of destinations with coordinates and travel times
+def process_response(response, jdata):
     data_portions = []
     if response.status != 200:
         print("ERROR: " + str(response.status) + ": " + str(jdata['errors'][0]['message']))
@@ -174,26 +182,12 @@ async def process_response(response):
                 if 'endnode' in conn[city]:
                     if conn[city]['endnode'] == 0:
                         output_data_portion[city]['endnode'] = 0
-
     return output_data_portion
 
 
 def datetime_to_timestamp(datetime_str):
     return datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").timestamp()
 
-
-async def asyncio_wrapper(origin_details, data_list):
-    async with aiohttp.ClientSession() as session:
-        t_init = time.time()
-        jobs = []
-        for i in range(0, 4):
-            jobs.append(asyncio.ensure_future(async_query_and_process(origin_details, data_list, session)))
-
-        results = await asyncio.gather(*jobs)
-
-        print(results)
-
-        print(time.time() - t_init)
 
 async def async_api_handler(origin_details, data_set_master, dest_per_query):
     t_init = time.time()
@@ -204,9 +198,7 @@ async def async_api_handler(origin_details, data_set_master, dest_per_query):
         get_reqs = []
         for dest_list in destination_chunks:
             get_reqs.append(asyncio.ensure_future(async_query_and_process(origin_details, dest_list, session)))
-
         results = await asyncio.gather(*get_reqs)
-
 
     print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(len(destination_chunks)) + 'API queries')
 

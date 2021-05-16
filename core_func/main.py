@@ -5,7 +5,6 @@ import sys
 import io_func
 import core_func
 from core_func.sbb_api_alternative import sbb_query_and_update
-from core_func.sbb_api_2 import sbb_query_and_update_2
 from core_func.sbb_api_2_class import sbb_api_manager
 from core_func.sbb_api_asyncio import async_query_and_process
 from pprint import pprint
