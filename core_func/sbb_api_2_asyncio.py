@@ -33,18 +33,21 @@ import asyncio
 # Because jobs are spawned prior to the dict being filled in, a worker may be assigned to query
 # a destination for which we already have a duration. Therefore, we pass in the entire data dict, allowing
 # the worker to check before wasting a precious API query.
-async def sbb_api_async(destination_list, q, origin_details, session):
 
-    # if data[destination] is not None:
-    #     return destination, {destination: data[destination]}, 0
+# Queries and processes the timetable.search.ch API
+async def async_query_and_process(origin_details, destination_list, session):
+    url = create_url(origin_details, destination_list)
 
-    data_portions = []
-    data_portion = {}
-    input_destination = {}
-    true_destination = ""
-    departure_time = []
-    # print('API query for %s... ' % destination)
+    t_init = time.time()
+    async with session.get(url) as response:
+        print(response)
+        output_data_portion = await process_response(response)
+        td_get = time.time() - t_init
+    return output_data_portion, td_get
 
+
+# Takes in the origin details and list of destinations and creates an appropriate url to get
+def create_url (origin_details, destination_list):
     prefix = 'https://timetable.search.ch/api/route.json?one_to_many=1'
     origin_body = '&from=' + origin_details[0] + '&date=' + origin_details[1] + '&time=' + origin_details[2]
     destination_body = ''
@@ -52,163 +55,165 @@ async def sbb_api_async(destination_list, q, origin_details, session):
         destination_body = destination_body + '&to[' + str(i) + ']=' + destination_list[i]
     url = prefix + origin_body + destination_body
     print(url)
+    return url
 
-    # session = requests.Session()
-    # retry = Retry(connect=1, backoff_factor=0.5)
-    # adapter = HTTPAdapter(max_retries=retry)
-    # session.mount('http://37.120.239.152:3128', adapter)
-    # session.mount('https://37.120.239.152:3128', adapter)
-    # proxies = {
-    #     "http": 'http://84.17.51.233:3128',
-    #     "https": 'https://84.17.51.233:3128',
-    # }
-    t_init = time.time()
 
-    async with session.get(url) as response:
-    # response = session.get(url)
-        td_get = time.time() - t_init
-        jdata = await response.json()
-        print(response)
-        if response.status != 200:
-            print("ERROR: " + str(response.status) + ": " + str(jdata['errors'][0]['message']))
-            if response.status == 429:
-                exit()
-            return 0
-        else:
-            if 'results' not in jdata:
-                print("ERROR: API returned with no results.")
-                return {},td_get
+# Processes response and converts the json into a list of destinations with coordinates and travel times
+async def process_response(response):
+    jdata = await response.json()
+    data_portions = []
+    if response.status != 200:
+        print("ERROR: " + str(response.status) + ": " + str(jdata['errors'][0]['message']))
+        if response.status == 429:
+            exit()
+        return 0
+    else:
+        if 'results' not in jdata:
+            print("ERROR: API returned with no results.")
+            return {}
 
-        for i in range(len(jdata['results'])):  # iterate on the list of destinations given
-            if 'connections' not in jdata['results'][i]:
-                if 'message' in jdata['results'][i]:
-                    data_portion = {destination_list[i]: {'error': jdata['results'][i]['message']}}
-                else:
-                    data_portion = {destination_list[i]: {'error': 'unknown error.'}}
-                data_portions.append(data_portion)
-                continue
-            for con in jdata['results'][i]['connections']:  # iterate on the connection for each destination
-                if con['departure'].split()[0] != origin_details[1]:
+    for i in range(len(jdata['results'])):  # iterate on the list of destinations given
+        if 'connections' not in jdata['results'][i]:
+            # if 'message' in jdata['results'][i]:
+            #     data_portion = {jdata['results'][i]: {'error': jdata['results'][i]['message']}}
+            # else:
+            #     data_portion = {jdata['results'][i]: {'error': 'unknown error.'}}
+            # data_portions.append(data_portion)
+            continue
+        for con in jdata['results'][i]['connections']:  # iterate on the connection for each destination
+            # if con['departure'].split()[0] != origin_details[1]:
+            #     continue
+            data_portion = {}
+            departure_time = datetime_to_timestamp(con['departure'])
+            stop_count = 0
+            for leg in range(len(con['legs'])):  # iterate on the legs for each connection
+                end_node = 0
+                if 'exit' in con['legs'][leg]:
+                    if 'to' in con['legs'][leg]:
+                        if con['legs'][leg]['exit']['name'] == con['legs'][leg]['to']: end_node = 1
+                    data_portion[con['legs'][leg]['exit']['name']] = {'destination': con['legs'][leg]['exit']['name'],
+                                                                      'lon': con['legs'][leg]['exit']['lon'],
+                                                                      'lat': con['legs'][leg]['exit']['lat'],
+                                                                      'departure': departure_time,
+                                                                      'arrival': datetime_to_timestamp(
+                                                                          con['legs'][leg]['exit']['arrival']),
+                                                                      'travel_time': datetime_to_timestamp(
+                                                                          con['legs'][leg]['exit'][
+                                                                              'arrival']) - departure_time,
+                                                                      'num_transfers': leg - 1,
+                                                                      'intermediate_stations': stop_count,
+                                                                      'endnode': end_node,
+                                                                      'hovertext': con['legs'][leg]['exit'][
+                                                                                       'name'] + '<br>' + core_func.sec_to_hhmm(
+                                                                          datetime_to_timestamp(
+                                                                              con['legs'][leg]['exit'][
+                                                                                  'arrival']) - departure_time)
+                                                                      }
+                if 'stops' not in con['legs'][leg]:
                     continue
-                data_portion = {}
-                departure_time = datetime_to_timestamp(con['departure'])
-                stop_count = 0
-                for leg in range(len(con['legs'])):  # iterate on the legs for each connection
+                if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
                     end_node = 0
-                    if 'exit' in con['legs'][leg]:
-                        if 'to' in con['legs'][leg]:
-                            if con['legs'][leg]['exit']['name'] == con['legs'][leg]['to']: end_node = 1
-                        data_portion[con['legs'][leg]['exit']['name']] = {'destination': con['legs'][leg]['exit']['name'],
-                                                              'lon': con['legs'][leg]['exit']['lon'],
-                                                              'lat': con['legs'][leg]['exit']['lat'],
+                    if 'departure' not in con['legs'][leg]: end_node = 1
+                    data_portion[con['legs'][leg]['name']] = {'destination': con['legs'][leg]['name'],
+                                                              'lon': con['legs'][leg]['lon'],
+                                                              'lat': con['legs'][leg]['lat'],
                                                               'departure': departure_time,
-                                                              'arrival': datetime_to_timestamp(con['legs'][leg]['exit']['arrival']),
+                                                              'arrival': datetime_to_timestamp(
+                                                                  con['legs'][leg]['arrival']),
                                                               'travel_time': datetime_to_timestamp(
-                                                                  con['legs'][leg]['exit']['arrival']) - departure_time,
+                                                                  con['legs'][leg]['arrival']) - departure_time,
                                                               'num_transfers': leg - 1,
                                                               'intermediate_stations': stop_count,
                                                               'endnode': end_node,
-                                                               'hovertext': con['legs'][leg]['exit']['name'] + '<br>' + core_func.sec_to_hhmm(
-                                                                   datetime_to_timestamp(con['legs'][leg]['exit']['arrival']) - departure_time)
-                                                               }
-                    if 'stops' not in con['legs'][leg]:
-                        continue
-                    if ('departure' not in con['legs'][leg]) | (con['legs'][leg]['stops'] is None):
-                        end_node = 0
-                        if 'departure' not in con['legs'][leg]: end_node = 1
-                        data_portion[con['legs'][leg]['name']] = {'destination': con['legs'][leg]['name'],
-                                                               'lon': con['legs'][leg]['lon'],
-                                                                  'lat': con['legs'][leg]['lat'],
-                                                                  'departure': departure_time,
-                                                                  'arrival': datetime_to_timestamp(con['legs'][leg]['arrival']),
-                                                                  'travel_time': datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time,
-                                                                  'num_transfers': leg - 1,
-                                                                  'intermediate_stations': stop_count,
-                                                                  'endnode': end_node,
-                                                                  'hovertext': con['legs'][leg]['name'] + '<br>' + core_func.sec_to_hhmm(
-                                                                      datetime_to_timestamp(con['legs'][leg]['arrival']) - departure_time)
-                                                                  }
-                        continue
-
-
-                    for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
-                        if 'arrival' not in stop:
-                            continue
-                        travel_time = datetime_to_timestamp(stop['arrival']) - departure_time
-                        if travel_time < 86400:
-                            data_portion[stop['name']] = {'destination': stop['name'],
-                                                          'lon': stop['lon'],
-                                                          'lat': stop['lat'],
-                                                          'departure': departure_time,
-                                                          'arrival': datetime_to_timestamp(stop['arrival']),
-                                                          'travel_time': travel_time,
-                                                          'num_transfers': leg,
-                                                          'intermediate_stations': stop_count,
-                                                          'endnode': 0,
-                                                          'hovertext': stop['name'] + '<br>' + core_func.sec_to_hhmm(travel_time)
-                                                          }
-                            stop_count += 1
-                data_portions.append(data_portion)
-
-        # data portions contains many multiple entries; now go through and consolidate them
-        # the dictionary with the shorted travel_time will be kept; departure time is 2nd priority
-        output_data_portion = {}
-        for conn in data_portions:  # iterate through each data_portion (ie each connection)
-            for city in conn:  # iterate through each destination
-                if city not in output_data_portion:
-                    output_data_portion[city] = conn[city]
-                elif conn[city]['travel_time'] < output_data_portion[city]['travel_time']:
-                    output_data_portion[city].update(conn[city])
-                elif conn[city]['travel_time'] == output_data_portion[city]['travel_time']:
-                    if conn[city]['arrival'] < output_data_portion[city]['arrival']:
-                        output_data_portion[city].update(conn[city])
-                else:
+                                                              'hovertext': con['legs'][leg][
+                                                                               'name'] + '<br>' + core_func.sec_to_hhmm(
+                                                                  datetime_to_timestamp(
+                                                                      con['legs'][leg]['arrival']) - departure_time)
+                                                              }
                     continue
 
-        # if any of the data portions suggest a destination is not an endnode, then it's definitely not
-        for city in output_data_portion:
-            for conn in data_portions:
-                if city in conn:
-                    if 'endnode' in conn[city]:
-                        if conn[city]['endnode'] == 0:
-                            output_data_portion[city]['endnode'] = 0
+                for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
+                    if 'arrival' not in stop:
+                        continue
+                    travel_time = datetime_to_timestamp(stop['arrival']) - departure_time
+                    if travel_time < 86400:
+                        data_portion[stop['name']] = {'destination': stop['name'],
+                                                      'lon': stop['lon'],
+                                                      'lat': stop['lat'],
+                                                      'departure': departure_time,
+                                                      'arrival': datetime_to_timestamp(stop['arrival']),
+                                                      'travel_time': travel_time,
+                                                      'num_transfers': leg,
+                                                      'intermediate_stations': stop_count,
+                                                      'endnode': 0,
+                                                      'hovertext': stop['name'] + '<br>' + core_func.sec_to_hhmm(
+                                                          travel_time)
+                                                      }
+                        stop_count += 1
+            data_portions.append(data_portion)
 
-        return output_data_portion, td_get
+    # data portions contains many multiple entries; now go through and consolidate them
+    # the dictionary with the shorted travel_time will be kept; departure time is 2nd priority
+    output_data_portion = {}
+    for conn in data_portions:  # iterate through each data_portion (ie each connection)
+        for city in conn:  # iterate through each destination
+            if city not in output_data_portion:
+                output_data_portion[city] = conn[city]
+            elif conn[city]['travel_time'] < output_data_portion[city]['travel_time']:
+                output_data_portion[city].update(conn[city])
+            elif conn[city]['travel_time'] == output_data_portion[city]['travel_time']:
+                if conn[city]['arrival'] < output_data_portion[city]['arrival']:
+                    output_data_portion[city].update(conn[city])
+            else:
+                continue
+
+    # if any of the data portions suggest a destination is not an endnode, then it's definitely not
+    for city in output_data_portion:
+        for conn in data_portions:
+            if city in conn:
+                if 'endnode' in conn[city]:
+                    if conn[city]['endnode'] == 0:
+                        output_data_portion[city]['endnode'] = 0
+
+    return output_data_portion
 
 
 def datetime_to_timestamp(datetime_str):
     return datetime.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").timestamp()
 
 
+async def asyncio_wrapper(origin_details, data_list):
+    async with aiohttp.ClientSession() as session:
+        t_init = time.time()
+        jobs = []
+        for i in range(0, 4):
+            jobs.append(asyncio.ensure_future(async_query_and_process(origin_details, data_list, session)))
+
+        results = await asyncio.gather(*jobs)
+
+        print(results)
+
+        print(time.time() - t_init)
+
+async def async_api_handler(origin_details, data_set_master, dest_per_query):
+    t_init = time.time()
+    n_queries = -(-len(data_set_master)//dest_per_query)  #ceiling integer division
+    async with aiohttp.ClientSession() as session:
+        print('Opening AsyncIO HTTP session.')
+        destination_chunks = [list(data_set_master)[i:i + dest_per_query] for i in range(0, len(data_set_master), dest_per_query)]
+        get_reqs = []
+        for dest_list in destination_chunks:
+            get_reqs.append(asyncio.ensure_future(async_query_and_process(origin_details, dest_list, session)))
+
+        results = await asyncio.gather(*get_reqs)
+
+
+    print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(len(destination_chunks)) + 'API queries')
+
+    return results
 
 
 if __name__ == "__main__":
-    async def main():
-        async with aiohttp.ClientSession() as session:
-            data_list = ['Bern', 'Thun', 'Interlaken Ost']
-            origin_details = ['Zurich HB', '2021-06-25', '7:00']
-            # test = (sbb_api_2.sbb_query_and_update_2(['Bern', 'Thun', 'Interlaken Ost'], 'q', ['Zurich HB', '2021-06-25', '7:00']))
-            # pprint(test)
-
-            # trying multiprocessing with asyncio
-            manager = mp.Manager()
-            q = manager.Queue()
-            nthreads = 3
-            pool = mp.Pool(nthreads)
-
-            t_init = time.time()
-            jobs = []
-            for i in range(0, 10):
-                # job = pool.apply_async(sbb_query_and_update_2, (data_list, q, origin_details, session))
-                # jobs.append(job)
-                jobs.append(asyncio.ensure_future(sbb_api_async(data_list, q, origin_details, session)))
-
-            results = await asyncio.gather(*jobs)
-
-            print(results)
-            # for job in jobs:
-            #     data_portion, td_get = job.get()
-
-            print(time.time() - t_init)
-
-    asyncio.run(main())
+    data_list = ['Bern', 'Thun', 'Interlaken Ost']
+    origin_details = ['Zurich HB', '2021-06-25', '7:00']
+    asyncio.run(async_api_handler(origin_details, data_list, 2 ))
