@@ -108,7 +108,7 @@ class MongodbHandler:
     def get_data_list(self, origin_details=None):
         if origin_details is None:
             if self.time == '':
-                print('Attempting to read from DB without an origin_details - DB doesn\'t know where to look!')
+                print('Attempting to read from DB without origin_details - DB doesn\'t know where to look!')
                 input()
             else:
                 data = list(self.time.find({},{'destination':1,
@@ -116,11 +116,13 @@ class MongodbHandler:
                                                'lon':1,
                                                'travel_time':1,
                                                'hovertext':1}))
+                print(data)
         else:
             col = io_func.mongodb_loc(origin_details)
             print(self.time)
             data_ = getattr(self.db, col)
             data = list(data_.find())
+            print(data)
 
         return data
 

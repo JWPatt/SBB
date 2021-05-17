@@ -54,7 +54,7 @@ ticktext = [f'<{bvals[1]}'] + [f'{bvals[k]}-{bvals[k+1]}' for k in range(1, len(
 # Get MongoDB key from the Heroku environmen variable, else use a local file (not on github)
 pw = os.environ.get('MONGODB_URI', None)
 print(pw)
-if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw_local.csv")
+if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
 print (pw)
 mgdb_url = pw
 t_init = time.time()
@@ -71,10 +71,12 @@ app.layout = html.Div(
                     className="four columns div-user-controls",
                     children=[
                         html.H2("SBB Travel Time Map"),
-                        html.P(
+                        html.P([
+                            """This map shows every train, tram, and bus station in Switzerland, colored by the travel
+                            time from the chosen origin city.""", html.Br(),html.Br(),
                             """Select a city of origin, a date of travel, and departure time. Filter the results by 
                             trip duration by selecting durations on the histogram."""
-                        ),
+                        ]),
                         html.Div(
                             className="div-for-dropdown",
                             children=[
@@ -140,6 +142,22 @@ app.layout = html.Div(
                                 )
                             ],
                         ),
+                        html.P([
+                            html.Br(),html.Br(),
+                            """Is your city not in the list? Enter your origin city name! (results take some time)"""
+                        ]),
+                        html.Div(
+                            className="div-for-search-bar",
+                            children=[
+                                # Search bar to input origin city
+                                dcc.Input(
+                                    id="origin-city-search-bar",
+                                    type="text",
+                                    placeholder="Enter new origin",
+                                )
+
+                            ]
+                        ),
                         html.P(id="date-value"),
                         dcc.Markdown(
                             children=[
@@ -189,7 +207,7 @@ app.layout = html.Div(
 
 # Get data from MongoDB, process for use by plotly
 # @cache.memoize()
-def global_store(datePicked, selectedData, selectedLocation, starttime):
+def global_store(datePicked, selectedData, selectedLocation, starttime, searchBar):
     date_picked = dt.strptime(datePicked, "%Y-%m-%d")
 
     if date_picked.weekday() > 4:
@@ -202,11 +220,19 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
     if not starttime:
         starttime = '8:00'
 
+    if not searchBar:
+        searchBar = None
+    else:
+        selectedLocation = searchBar
+
     origin_details = [selectedLocation, startdate, starttime]
     mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map", origin_details)
 
+    if searchBar:
+        success = core_func.primary_wrapper(origin_details, mgdb)
+
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1).rename(
-        columns={'destination': 'city', 'travel_time': 'duration'})
+    columns={'destination': 'city', 'travel_time': 'duration'})
     return sbb
 
 
@@ -219,10 +245,11 @@ def global_store(datePicked, selectedData, selectedLocation, starttime):
         Input("starttime-dropdown", "value"),
         Input("location-dropdown", "value"),
         Input("max-time-dropdown", "value"),
+        Input("origin-city-search-bar", "value"),
     ],
 )
-def update_hidden_div(datePicked, starttime, selectedLocation, selectedData):
-    sbb = global_store(datePicked, selectedData, selectedLocation, starttime)
+def update_hidden_div(datePicked, starttime, selectedLocation, selectedData, searchBar):
+    sbb = global_store(datePicked, selectedData, selectedLocation, starttime, searchBar)
     return sbb.to_json()
 
 # # A new origin city triggers a different update signal

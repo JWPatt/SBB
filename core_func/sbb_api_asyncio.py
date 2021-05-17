@@ -43,7 +43,7 @@ async def async_query_and_process(origin_details, destination_list, session):
         print(response)
         output_data_portion = await asyncio_process_response(response)
         td_get = time.time() - t_init
-    return output_data_portion, td_get
+    return output_data_portion
 
 
 # Takes in the origin details and list of destinations and creates an appropriate url to get
@@ -63,7 +63,6 @@ async def asyncio_process_response(response):
     jdata = await response.json()
     output = process_response(response, jdata)
     print( "returning output")
-    time.sleep(1)
     return output
 
 
@@ -198,9 +197,14 @@ async def async_api_handler(origin_details, data_set_master, dest_per_query):
         get_reqs = []
         for dest_list in destination_chunks:
             get_reqs.append(asyncio.ensure_future(async_query_and_process(origin_details, dest_list, session)))
-        results = await asyncio.gather(*get_reqs)
+        results_list = await asyncio.gather(*get_reqs)
 
+
+    results = {}
+    for result in results_list:
+        results.update(result)
     print('Time to clear the stack: ' + str(time.time() - t_init) + ' seconds, and ' + str(len(destination_chunks)) + 'API queries')
+
 
     return results
 

@@ -49,7 +49,7 @@ def primary_wrapper(origin_details, mgdb):
         results = asyncio.run(core_func.sbb_api_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
 
     # except KeyboardInterrupt or EOFError:
-    #     mgdb.write_data_dict_of_dict(results)
+        mgdb.write_data_dict_of_dict(results)
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
