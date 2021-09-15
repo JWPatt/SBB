@@ -7,6 +7,8 @@ from .process_data import update_dict_min_duration
 from .sbb_api_alternative import sbb_query_and_update
 from .sbb_api_asyncio import *
 from .html_plot import make_html_map
-from .main import primary_wrapper
+from .sbb_api_asyncio_wrapper import primary_wrapper
 from .misc_funcs import *
+from .osrm import osrm_query
+from .colorbar_config import *
 

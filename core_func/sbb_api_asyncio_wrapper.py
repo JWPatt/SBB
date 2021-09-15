@@ -40,16 +40,16 @@ def primary_wrapper(origin_details, mgdb):
                 data_set_master.discard(destination)
                 pop_counter += 1
         print('discarded ', pop_counter, " destinations, out of ", (len(data_set_master) + pop_counter))
-        if pop_counter >= 2750:
-            return 1
+        # if pop_counter >= 2750:
+            # return 1
 
         # t_init = time.time()
         dest_per_query = 200
 
         results = asyncio.run(core_func.sbb_api_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
-
+        print(results)
     # except KeyboardInterrupt or EOFError:
-        mgdb.write_data_dict_of_dict(results)
+    #     mgdb.write_data_dict_of_dict(results)
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     origin_city = ['Locarno']
     origin_date = ['2021-06-25']
-    origin_time = ['7:00']
+    origin_time = ['7:01']
     origin_details_list = []
     for city in origin_city:
         for date in origin_date:

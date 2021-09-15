@@ -36,7 +36,7 @@ import asyncio
 
 # Queries and processes the timetable.search.ch API
 async def async_query_and_process(origin_details, destination_list, session):
-    url = create_url(origin_details, destination_list)
+    url = create_url([origin_details, '2021-06-25','7:00'], destination_list)
 
     t_init = time.time()
     async with session.get(url) as response:
@@ -79,6 +79,18 @@ def process_response(response, jdata):
             print("ERROR: API returned with no results.")
             return {}
 
+    data_portions.append({jdata['results'][0]['points'][0]['text'] : {'destination': jdata['results'][0]['points'][0]['text'],
+                                                      'lon': jdata['results'][0]['points'][0]['lon'],
+                                                      'lat': jdata['results'][0]['points'][0]['lat'],
+                                                      'departure': 0,
+                                                      'arrival': 0,
+                                                      'train_time': 0,
+                                                      'num_transfers': 0,
+                                                      'intermediate_stations': 0,
+                                                      'endnode': 0,
+                                                      'hovertext': jdata['results'][0]['points'][0]['text']
+                                                      }})
+
     for i in range(len(jdata['results'])):  # iterate on the list of destinations given
         if 'connections' not in jdata['results'][i]:
             # if 'message' in jdata['results'][i]:
@@ -104,7 +116,7 @@ def process_response(response, jdata):
                                                                       'departure': departure_time,
                                                                       'arrival': datetime_to_timestamp(
                                                                           con['legs'][leg]['exit']['arrival']),
-                                                                      'travel_time': datetime_to_timestamp(
+                                                                      'train_time': datetime_to_timestamp(
                                                                           con['legs'][leg]['exit'][
                                                                               'arrival']) - departure_time,
                                                                       'num_transfers': leg - 1,
@@ -127,7 +139,7 @@ def process_response(response, jdata):
                                                               'departure': departure_time,
                                                               'arrival': datetime_to_timestamp(
                                                                   con['legs'][leg]['arrival']),
-                                                              'travel_time': datetime_to_timestamp(
+                                                              'train_time': datetime_to_timestamp(
                                                                   con['legs'][leg]['arrival']) - departure_time,
                                                               'num_transfers': leg - 1,
                                                               'intermediate_stations': stop_count,
@@ -142,33 +154,33 @@ def process_response(response, jdata):
                 for stop in con['legs'][leg]['stops']:  # iterate on the stops for each leg
                     if 'arrival' not in stop:
                         continue
-                    travel_time = datetime_to_timestamp(stop['arrival']) - departure_time
-                    if travel_time < 86400:
+                    train_time = datetime_to_timestamp(stop['arrival']) - departure_time
+                    if train_time < 86400:
                         data_portion[stop['name']] = {'destination': stop['name'],
                                                       'lon': stop['lon'],
                                                       'lat': stop['lat'],
                                                       'departure': departure_time,
                                                       'arrival': datetime_to_timestamp(stop['arrival']),
-                                                      'travel_time': travel_time,
+                                                      'train_time': train_time,
                                                       'num_transfers': leg,
                                                       'intermediate_stations': stop_count,
                                                       'endnode': 0,
                                                       'hovertext': stop['name'] + '<br>' + core_func.sec_to_hhmm(
-                                                          travel_time)
+                                                          train_time)
                                                       }
                         stop_count += 1
             data_portions.append(data_portion)
 
     # data portions contains many multiple entries; now go through and consolidate them
-    # the dictionary with the shorted travel_time will be kept; departure time is 2nd priority
+    # the dictionary with the shorted train_time will be kept; departure time is 2nd priority
     output_data_portion = {}
     for conn in data_portions:  # iterate through each data_portion (ie each connection)
         for city in conn:  # iterate through each destination
             if city not in output_data_portion:
                 output_data_portion[city] = conn[city]
-            elif conn[city]['travel_time'] < output_data_portion[city]['travel_time']:
+            elif conn[city]['train_time'] < output_data_portion[city]['train_time']:
                 output_data_portion[city].update(conn[city])
-            elif conn[city]['travel_time'] == output_data_portion[city]['travel_time']:
+            elif conn[city]['train_time'] == output_data_portion[city]['train_time']:
                 if conn[city]['arrival'] < output_data_portion[city]['arrival']:
                     output_data_portion[city].update(conn[city])
             else:
@@ -213,3 +225,4 @@ if __name__ == "__main__":
     data_list = ['Bern', 'Thun', 'Interlaken Ost']
     origin_details = ['Zurich HB', '2021-06-25', '7:00']
     asyncio.run(async_api_handler(origin_details, data_list, 2 ))
+    print('done')
