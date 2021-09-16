@@ -11,4 +11,5 @@ from .sbb_api_asyncio_wrapper import primary_wrapper
 from .misc_funcs import *
 from .osrm import osrm_query
 from .colorbar_config import *
+from .dropdown_config import *
 

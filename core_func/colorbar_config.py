@@ -1,3 +1,6 @@
+import core_func
+import numpy as np
+
 def colorbar_config():
     colorbar = {0: {}, 1: {}, 2: {}}
 
@@ -26,5 +29,22 @@ def colorbar_config():
                                        '#053061', '#053061', '#053061'][::-1]
     # colorbar[2]['colors'] = ['#5c0900', '#cc1500', '#ff7a6b', '#ffb1a8', '#6677ff', '#384eff', '#0101c6', '#000075'][::-1]
     colorbar[2]['title'] = "Difference (public transport minus driving time) - Hours"
+
+    for i in range(0, 3):
+        colorbar[i]['input'] = core_func.discrete_colorscale(colorbar[i]['intervals'], colorbar[i]['colors'])
+        colorbar[i]['bvals'] = np.array(colorbar[i]['intervals'])
+        colorbar[i]['tickvals'] = [np.mean(colorbar[i]['intervals'][k:k + 2]) * 60 * 60 for k in range(
+            len(colorbar[i]['intervals']) - 1)]  # position with respect to bvals where ticktext is displayed
+        # print(colorbar[i]['tickvals'])
+        # print(colorbar[i]['bvals'])
+        if i < 2:
+            colorbar[i]['ticktext'] = [f'<{colorbar[i]["bvals"][1]}'] + [
+                f'{colorbar[i]["bvals"][k]}-{colorbar[i]["bvals"][k + 1]}' for k in
+                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'>{colorbar[i]["bvals"][-2]}']
+        else:
+            colorbar[i]['ticktext'] = [f'More than {colorbar[i]["bvals"][1]}<br>hour slower'] + [
+                f'{colorbar[i]["bvals"][k]} to {colorbar[i]["bvals"][k + 1]}' for k in
+                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'More than {colorbar[i]["bvals"][-2]}<br>hour faster']
+
 
     return colorbar

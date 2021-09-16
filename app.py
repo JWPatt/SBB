@@ -1,92 +1,43 @@
+# General
+import pandas as pd
+import numpy as np
+import time
+import os
+
+# Front end / plotting
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import pandas as pd
-import numpy as np
-
 from dash.dependencies import Input, Output, State
 from plotly import graph_objs as go
 from plotly.graph_objs import *
-from datetime import datetime as dt
-# from flask_caching import Cache
-import dns
 
+# Project specific
 import io_func
 import core_func
-import time
-import os
 
 
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
 )
 server = app.server
-# CACHE_CONFIG = {
-#     'CACHE_TYPE':'filesystem',
-#     'CACHE_DIR': 'cache-directory'
-# }
-# cache = Cache()
-# server = cache.init_app(app.server, config=CACHE_CONFIG)
-
-
-# Plotly mapbox public token
-mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
 
 # List of origin locations in Switzerland
-list_of_locations = {
-    "Zürich HB": {"lat": 47.3779, "lon": 8.5403},
-    "Basel SBB": {"lat": 47.5596, "lon": 7.5886},
-    "Bern": {"lat": 46.9490, "lon": 7.4385},
-    "Chur": {"lat": 46.8508, "lon": 9.5320},
-    "Genève": {"lat": 46.2044, "lon": 6.1413},
-    "Lausanne": {"lat": 46.5197, "lon": 6.6323},
-    "Lugano": {"lat": 46.0037, "lon": 8.9511},
-    "Schwyz": {"lat": 47.0207, "lon": 8.6530},
-    "Sion": {"lat": 46.2331, "lon": 7.3606},
-    "St. Gallen": {"lat": 47.4245, "lon": 9.3767},
-}
+dropdown_locations = core_func.get_dropdown_locations()
 options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
-options_map = {options_list[0]: 'hovertext_train',
-                    options_list[1]:'hovertext_drive',
-                    options_list[2]:'hovertext_diff'}
-options_map_value = {options_list[0]: 'train_time',
-                    options_list[1]:'drive_time',
-                    options_list[2]:'drive_minus_train'}
+hovertext_cols,travel_time_cols = core_func.get_dropdown_maps()
 
 colorbar = core_func.colorbar_config()
+#Currently these are not flexible
 n_bins = 28
 n_bins_diff = 24
 
-for i in range(0,3):
-    colorbar[i]['input'] = core_func.discrete_colorscale(colorbar[i]['intervals'],colorbar[i]['colors'])
-    colorbar[i]['bvals'] = np.array(colorbar[i]['intervals'])
-    colorbar[i]['tickvals'] = [np.mean(colorbar[i]['intervals'][k:k+2])*60*60 for k in range(len(colorbar[i]['intervals'])-1)] #position with respect to bvals where ticktext is displayed
-    # print(colorbar[i]['tickvals'])
-    # print(colorbar[i]['bvals'])
-    if i < 2:
-        colorbar[i]['ticktext'] = [f'<{colorbar[i]["bvals"][1]}'] + [f'{colorbar[i]["bvals"][k]}-{colorbar[i]["bvals"][k+1]}' for k in range(1, len(colorbar[i]["bvals"])-2)]+[f'>{colorbar[i]["bvals"][-2]}']
-    else:
-        colorbar[i]['ticktext'] = [f'More than {colorbar[i]["bvals"][1]}<br>hour slower'] + [
-            f'{colorbar[i]["bvals"][k]} to {colorbar[i]["bvals"][k + 1]}' for k in
-            range(1, len(colorbar[i]["bvals"]) - 2)] + [f'More than {colorbar[i]["bvals"][-2]}<br>hour faster']
+# Get tokens from the Heroku environment variable, else use a local file (not on github)
+mgdb_url = os.environ.get('MONGODB_URI', None)
+if not mgdb_url: mgdb_url = pd.read_csv("io_func/secret_mgdb_pw.csv")
+mapbox_access_token = os.environ.get('MAPBOX_PUBLIC', None)
+if not mapbox_access_token: mapbox_access_token = pd.read_csv("io_func/secret_mapbox_pw.csv").columns[0]
 
-# print(colorbar[0]['input'])
-# print(colorbar[2]['input'])
-
-# Get MongoDB key from the Heroku environment variable, else use a local file (not on github)
-pw = os.environ.get('MONGODB_URI', None)
-if not pw: pw = pd.read_csv("io_func/secret_mgdb_pw.csv")
-mgdb_url = pw
-t_init = time.time()
-
-
-def blank_fig():
-    fig = go.Figure(go.Scatter(x=[], y=[]))
-    fig.update_layout(template=None)
-    fig.update_xaxes(showgrid=False, showticklabels=False, zeroline=False)
-    fig.update_yaxes(showgrid=False, showticklabels=False, zeroline=False)
-
-    return fig
 
 # Layout of Dash App
 # Note that a hidden div exists at the end to share data between callbacks
@@ -117,45 +68,13 @@ app.layout = html.Div(
                                             "label": n,
                                             "value": n
                                         }
-                                        for n in list_of_locations
+                                        for n in dropdown_locations
                                     ],
                                     placeholder="Select a starting location",
                                     value='Zürich HB',
                                 )
                             ],
                         ),
-                        # html.Div(
-                        #     className="div-for-dropdown",
-                        #     children=[
-                        #         dcc.DatePickerSingle(
-                        #             id="date-dropdown",
-                        #             min_date_allowed=dt(2021, 1, 1),
-                        #             max_date_allowed=dt(2021, 12, 31),
-                        #             initial_visible_month=dt(2021, 6, 26),
-                        #             date=dt(2021, 6, 26).date(),
-                        #             display_format="MMMM D, YYYY",
-                        #             style={"border": "0px solid black"},
-                        #         )
-                        #     ],
-                        # ),
-                        # html.Div(
-                        #     className="div-for-dropdown",
-                        #     children=[
-                        #         # Dropdown for locations on map
-                        #         dcc.Dropdown(
-                        #             id="starttime-dropdown",
-                        #             options=[
-                        #                 {
-                        #                     "label": str(n) + ":00",
-                        #                     "value": str(n) + ":00",
-                        #                 }
-                        #                 for n in range(24)
-                        #             ],
-                        #             placeholder="Select a departure time",
-                        #             value='7:00',
-                        #         )
-                        #     ],
-                        # ),
                         html.Div(
                             className="div-for-dropdown",
                             children=[
@@ -189,13 +108,9 @@ app.layout = html.Div(
                                     ],
                                     multi=True,
                                     placeholder="Select duration range",
-                                )
+                                ),
                             ],
                         ),
-                        # html.P([
-                        #     html.Br(),html.Br(),
-                        #     """Is your city not in the list? Enter your origin city name! (results take some time)"""
-                        # ]),
                         html.Div(
                             style={'display':'none'},
                             className="div-for-search-bar",
@@ -205,33 +120,17 @@ app.layout = html.Div(
                                     id="origin-city-search-bar",
                                     type="text",
                                     placeholder="Enter new origin",
-                                )
+                                ),
 
-                            ]
+                            ],
                         ),
                         html.P(id="date-value"),
                         dcc.Markdown(
                             children=[
                                 "Source: [search.ch](https://timetable.search.ch)"
-                            ]
+                            ],
                         ),
-                        # html.Div(
-                        #     className="div-for-dropdown",
-                        #     children=[
-                        #         # Dropdown for locations on map
-                        #         dcc.Dropdown(
-                        #             id="new-location-dropdown",
-                        #             options=[
-                        #                 {"label": i, "value": i} for i in ['Martigny', 'Chur']
-                        #             ],
-                        #             placeholder="Select a starting location",
-                        #             # value='Zurich HB',
-                        #         )
-                        #     ],
-                        # ),
-
                     ],
-                    # style={'width':'25vw'}
                 ),
                 # Column for app graphs and plots
                 html.Div(
@@ -242,7 +141,7 @@ app.layout = html.Div(
                             type="default",
                             children=[html.Div(dcc.Graph(id="map-graph",
                                                          style={'height':'70vh'},
-                                                         figure = blank_fig()),)],
+                                                         figure = core_func.blank_fig()),)],
                             style={'height':'70vh'}
                         ),
 
@@ -258,26 +157,20 @@ app.layout = html.Div(
                             type="default",
                             children=[html.Div(dcc.Graph(id="histogram",
                                                          style={'height':'27vh'},
-                                                         figure = blank_fig()))],
+                                                         figure = core_func.blank_fig()))],
                             style={'height':'30vh'}
                         ),
-
-
                     ],
-                    # style={'width':'72.5vw','margin-left':'0vw','margin-right':'0px'}
                 ),
             ],
         ),
         html.Div(id='update-signal', style={'display':'none'})
     ]
-
-
 )
 
-# Get data from MongoDB, process for use by plotly
-# @cache.memoize()
-def global_store(selectedData, selectedLocation, searchBar):
 
+# Get data from MongoDB, process for use by plotly
+def global_store(selectedData, selectedLocation, searchBar):
     if not selectedLocation:
         selectedLocation = 'Bern'
 
@@ -288,12 +181,8 @@ def global_store(selectedData, selectedLocation, searchBar):
 
     mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map_test2", selectedLocation)
 
-    if searchBar:
-        # success = core_func.primary_wrapper(origin_details, mgdb)
-        print("searchBar")
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1)
     sbb['drive_minus_train'] = -sbb['drive_minus_train']
-
     return sbb
 
 
@@ -309,7 +198,6 @@ def global_store(selectedData, selectedLocation, searchBar):
 )
 def update_hidden_div(selectedLocation, selectedData, searchBar):
     sbb = global_store(selectedData, selectedLocation, searchBar)
-
     return sbb.to_json()
 
 
@@ -338,18 +226,6 @@ def update_selected_data(clickData):
         return {"points": []}
 
 
-# # Go to weather sites when clicking point on map
-# @app.callback(
-#     Output("update-signal", "value"),
-#     [
-#         Input("map-graph", "clickData")
-#     ],
-# )
-# def link_to_weather(clickData):
-#     if clickData:
-#         print(clickData["points"][0]["lat"])
-
-
 # Update Histogram Figure based on Month, Day and Times Chosen
 @app.callback(
     Output("histogram", "figure"),
@@ -357,12 +233,11 @@ def update_selected_data(clickData):
      Input("option-dropdown", "value")],
 )
 def update_histogram(sbb_json, option_dropdown):
-    # print(option_dropdown)
     if sbb_json:
         sbb = pd.read_json(sbb_json)
 
         #hacky method to keep hsitogram color bins correct
-        xVal = sbb[options_map_value[options_list[option_dropdown]]] / 3600
+        xVal = sbb[travel_time_cols[options_list[option_dropdown]]] / 3600
         if option_dropdown == 2:
             xVal = xVal.append(pd.Series([-1.499]))
 
@@ -406,7 +281,7 @@ def update_histogram(sbb_json, option_dropdown):
                          marker=dict(
                              color=colorbar[option_dropdown]['colors_histogram'],
                              cmax=cmax,
-                             cmin=cmin
+                             cmin=cmin,
                          ),
                          hoverinfo="x",
                          xbins=dict(
@@ -425,7 +300,7 @@ def update_histogram(sbb_json, option_dropdown):
     Output("map-graph", "figure"),
     [Input("update-signal", "children"),
      Input("max-time-dropdown", "value"),
-     Input("option-dropdown", "value")]
+     Input("option-dropdown", "value"),]
 )
 def update_graph(sbb_json, display_times, option_dropdown):
     t_init = time.time()
@@ -442,15 +317,12 @@ def update_graph(sbb_json, display_times, option_dropdown):
         sbb_list = []
         display_times = [int(i) for i in display_times]
         for i in range(len(display_times)):
-            sbb_list.append(sbb[(sbb[options_map_value[options_list[option_dropdown]]] <= display_times[i] * 60 * 60) & (sbb[options_map_value[options_list[option_dropdown]]] > (display_times[i] - 1) * 60 * 60)])
+            sbb_list.append(sbb[(sbb[travel_time_cols[options_list[option_dropdown]]] <= display_times[i] * 60 * 60) & (sbb[travel_time_cols[options_list[option_dropdown]]] > (display_times[i] - 1) * 60 * 60)])
         sbb = pd.concat(sbb_list)
-
-    print(time.time()-t_init, 'before figure')
 
     figure_settings = {}
     cmin = min(colorbar[option_dropdown]['intervals'])*3600
     cmax = max(colorbar[option_dropdown]['intervals'])*3600
-
 
     return go.Figure(
         data=[
@@ -460,11 +332,11 @@ def update_graph(sbb_json, display_times, option_dropdown):
                 lon=sbb["lon"],
                 mode="markers",
                 hoverinfo='text',
-                hovertext=sbb[options_map[options_list[option_dropdown]]],
-                text=sbb[options_map[options_list[option_dropdown]]],
+                hovertext=sbb[hovertext_cols[options_list[option_dropdown]]],
+                text=sbb[hovertext_cols[options_list[option_dropdown]]],
                 marker=dict(
                     showscale=True,
-                    color=sbb[options_map_value[options_list[option_dropdown]]],
+                    color=sbb[travel_time_cols[options_list[option_dropdown]]],
                     opacity=0.85,
                     size=7.5,
                     colorscale=colorbar[option_dropdown]['input'],
@@ -488,11 +360,11 @@ def update_graph(sbb_json, display_times, option_dropdown):
             ),
             # Plot of important locations on the map
             # Scattermapbox(
-            #     lat=[list_of_locations[i]["lat"] for i in list_of_locations],
-            #     lon=[list_of_locations[i]["lon"] for i in list_of_locations],
+            #     lat=[dropdown_locations[i]["lat"] for i in dropdown_locations],
+            #     lon=[dropdown_locations[i]["lon"] for i in dropdown_locations],
             #     mode="markers",
             #     hoverinfo="text",
-            #     text=[i for i in list_of_locations],
+            #     text=[i for i in dropdown_locations],
             #     marker=dict(size=8, color="#ffa0a0"),
             # ),
         ],
@@ -543,13 +415,7 @@ def update_graph(sbb_json, display_times, option_dropdown):
             ],
         ),
     )
-    # print(time.time()-t_init, 'after figure')
-    # end_fig.write_html("index.html", include_mathjax=False)
-    # return end_fig
-
-# Do something on click
-
 
 
 if __name__ == "__main__":
-    app.run_server(debug=False, host='0.0.0.0', port=5000)
+    app.run_server(debug=False, host='0.0.0.0', port=5001)

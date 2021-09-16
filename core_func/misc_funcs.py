@@ -1,3 +1,5 @@
+from plotly import graph_objs as go
+
 def sec_to_hhmm(seconds):
     """
     Convert an interger number of seconds into hours in minutes in hh:mm format.
@@ -27,3 +29,12 @@ def discrete_colorscale(bvals, colors):
     for k in range(len(colors)):
         dcolorscale.extend([[nvals[k], colors[k]], [nvals[k + 1], colors[k]]])
     return dcolorscale
+
+
+# Must give plotly a blank figure to generate a loading screen before the real figure is loaded
+def blank_fig():
+    fig = go.Figure(go.Scatter(x=[], y=[]))
+    fig.update_layout(template=None)
+    fig.update_xaxes(showgrid=False, showticklabels=False, zeroline=False)
+    fig.update_yaxes(showgrid=False, showticklabels=False, zeroline=False)
+    return fig
