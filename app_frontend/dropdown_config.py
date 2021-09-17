@@ -15,8 +15,6 @@ def get_dropdown_locations():
     return dropdown_locations
 
 
-
-
 def get_dropdown_maps():
     options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
 
