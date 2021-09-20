@@ -139,7 +139,6 @@ def update_histogram(sbb_json, option_dropdown):
     ]
 )
 def update_graph(sbb_json, display_times, option_dropdown):
-    t_init = time.time()
     if not sbb_json:
         return go.Figure()
 
@@ -152,105 +151,17 @@ def update_graph(sbb_json, display_times, option_dropdown):
             sbb_list.append(sbb[(sbb[travel_time_cols[options_list[option_dropdown]]] <= display_times[i] * 60 * 60) & (sbb[travel_time_cols[options_list[option_dropdown]]] > (display_times[i] - 1) * 60 * 60)])
         sbb = pd.concat(sbb_list)
 
-    cmin = min(colorbar[option_dropdown]['intervals'])*3600
-    cmax = max(colorbar[option_dropdown]['intervals'])*3600
-
-    zoom = 6.7
-    lat_default = 46.83
-    lon_default = 7.93
-    bearing = 0
 
     return go.Figure(
-        data=[
-            # Data for all rides based on date and time
-            Scattermapbox(
-                lat=sbb["lat"],
-                lon=sbb["lon"],
-                mode="markers",
-                hoverinfo='text',
-                hovertext=sbb[hovertext_cols[options_list[option_dropdown]]],
-                text=sbb[hovertext_cols[options_list[option_dropdown]]],
-                marker=dict(
-                    showscale=True,
-                    color=sbb[travel_time_cols[options_list[option_dropdown]]],
-                    opacity=0.85,
-                    size=7.5,
-                    colorscale=colorbar[option_dropdown]['input'],
-                    cmax=cmax,
-                    cmin=cmin,
-                    colorbar=dict(
-                        title=colorbar[option_dropdown]['title'],
-                        x=0.035,
-                        xpad=0,
-                        tickvals=colorbar[option_dropdown]['tickvals'],
-                        ticktext=colorbar[option_dropdown]['ticktext'],
-                        tickfont=dict(color="#000000",
-                                      size=14),
-                        titlefont=dict(color="#000000",
-                                       size=16),
-                        ticksuffix=" hours",
-                        showticksuffix="all",
-                        thicknessmode="pixels",
-                    ),
-                ),
-            ),
-            # Plot of important locations on the map
-            # Scattermapbox(
-            #     lat=[dropdown_locations[i]["lat"] for i in dropdown_locations],
-            #     lon=[dropdown_locations[i]["lon"] for i in dropdown_locations],
-            #     mode="markers",
-            #     hoverinfo="text",
-            #     text=[i for i in dropdown_locations],
-            #     marker=dict(size=8, color="#ffa0a0"),
-            # ),
-        ],
-        # layout=app_frontend.get_mapbox_layout(mapbox_access_token),
-        layout=go.Layout(
-            autosize=True,
-            margin=go.layout.Margin(l=0, r=35, t=0, b=0),
-            showlegend=False,
-            # coloraxis_colorscale='algae_r',
-            mapbox=dict(
-                accesstoken=mapbox_access_token,
-                center=dict(lat=lat_default, lon=lon_default),  # 40.7272  # -73.991251
-                style="carto-positron",
-                bearing=bearing,
-                zoom=zoom,
-            ),
-            updatemenus=[
-                dict(
-                    buttons=(
-                        [
-                            dict(
-                                args=[
-                                    {
-                                        "mapbox.zoom": zoom,
-                                        "mapbox.center.lon": lon_default,
-                                        "mapbox.center.lat": lat_default,
-                                        "mapbox.bearing": 0,
-                                        "mapbox.style": "carto-positron",
-                                    }
-                                ],
-                                label="Reset Zoom",
-                                method="relayout",
-                            )
-                        ]
-                    ),
-                    direction="left",
-                    pad={"r": 0, "t": 0, "b": 0, "l": 0},
-                    showactive=False,
-                    type="buttons",
-                    x=0.45,
-                    y=0.02,
-                    xanchor="left",
-                    yanchor="bottom",
-                    bgcolor="#323130",
-                    borderwidth=1,
-                    bordercolor="#6d6d6d",
-                    font=dict(color="#FFFFFF"),
-                )
-            ],
-        ),
+        data=app_frontend.get_mapbox_graph(sbb,
+                                           hovertext_cols,
+                                           options_list,
+                                           option_dropdown,
+                                           colorbar,
+                                           travel_time_cols,
+                                           # dropdown_locations     # Uncomment to add point at origins cities
+                                           ),
+        layout=app_frontend.get_mapbox_layout(mapbox_access_token),
     )
 
 

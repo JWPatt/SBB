@@ -39,8 +39,7 @@ def get_mapbox_layout(mapbox_access_token):
 
     return go.Layout(
             autosize=True,
-            # margin=go.layout.Margin(l=0, r=35, t=0, b=0),
-            margin={"l": 0, "r": 35, "t": 0, "b": 0},
+            margin=go.layout.Margin(l=0, r=35, t=0, b=0),
             showlegend=False,
             # coloraxis_colorscale='algae_r',
             mapbox=dict(
@@ -83,4 +82,4 @@ def get_mapbox_layout(mapbox_access_token):
                     font=dict(color="#FFFFFF"),
                 )
             ],
-        ),
+        )
