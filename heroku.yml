@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  app-name:
+    build:
+      context: .
+    image: sbb:4.0.0
+    container_name: sbb_4
+    ports:
+      - "5000:5000"
+    restart: unless-stopped

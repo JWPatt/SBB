@@ -30,10 +30,15 @@ hovertext_cols,travel_time_cols = app_frontend.get_dropdown_maps()
 colorbar = app_frontend.colorbar_config()
 
 # Get tokens from the Heroku environment variable, else use a local file (not on github)
-mgdb_url = os.environ.get('MONGODB_URI', None)
-if not mgdb_url: mgdb_url = pd.read_csv("io_func/secret_mgdb_pw.csv")
-mapbox_access_token = os.environ.get('MAPBOX_PUBLIC', None)
-if not mapbox_access_token: mapbox_access_token = pd.read_csv("io_func/secret_mapbox_pw.csv").columns[0]
+try:
+    mgdb_url = os.environ.get('MONGODB_URI', None)
+except:
+    print("MongoDB url could not be found - environment variable 'MONGODB_URI' was not found")
+
+try:
+    mapbox_access_token = os.environ.get('MAPBOX_PUBLIC', None)
+except:
+    print("Mapbox token could not be found - environment variable 'MAPBOX_PUBLIC' was not found")
 
 
 # Layout of Dash App
