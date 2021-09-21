@@ -15,14 +15,14 @@ def get_dropdown_locations():
     return dropdown_locations
 
 
-def get_dropdown_maps():
-    options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
-
-    hovertext_cols = {options_list[0]: 'hovertext_train',
-                      options_list[1]: 'hovertext_drive',
-                      options_list[2]: 'hovertext_diff'}
-
-    travel_time_cols = {options_list[0]: 'train_time',
-                        options_list[1]: 'drive_time',
-                        options_list[2]: 'drive_minus_train'}
+def get_dropdown_maps(options_list):
+    if len(options_list) != 3:
+        raise ValueError('Function get_dropdown_maps is only configured for 3 options')
+    else:
+        hovertext_cols = {options_list[0]: 'hovertext_train',
+                          options_list[1]: 'hovertext_drive',
+                          options_list[2]: 'hovertext_diff'}
+        travel_time_cols = {options_list[0]: 'train_time',
+                            options_list[1]: 'drive_time',
+                            options_list[2]: 'drive_minus_train'}
     return hovertext_cols, travel_time_cols

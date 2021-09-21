@@ -5,15 +5,11 @@ import os
 
 # Front end / plotting
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 from plotly import graph_objs as go
-from plotly.graph_objs import *
 
 # Project specific
 import io_func
-import core_func
 import app_frontend
 
 
@@ -22,12 +18,15 @@ app = dash.Dash(
 )
 server = app.server
 
-# List of origin locations in Switzerland
+# List of selectable origin locations
 dropdown_locations = app_frontend.get_dropdown_locations()
-options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
-hovertext_cols,travel_time_cols = app_frontend.get_dropdown_maps()
 
-colorbar = app_frontend.colorbar_config()
+# List of selectable options and how they map to the correct columns in the database
+options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
+hovertext_cols, travel_time_cols = app_frontend.get_dropdown_maps(options_list)
+
+# Colorbar for graphing (not very flexible)
+colorbar = app_frontend.colorbar_config(4)
 
 # Get tokens from the Heroku environment variable, else use a local file (not on github)
 try:
