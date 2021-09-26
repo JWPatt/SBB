@@ -8,8 +8,7 @@ from .write_to_csv import write_destination_set_to_csv
 from .write_to_csv import write_data_line_to_open_csv
 from .write_to_csv import write_data_to_open_csv
 from .write_to_csv import write_destination_to_csv
-from .database_name_maker import database_loc
-from .database_name_maker import mongodb_loc
+from .database_name_maker import reformat_origin_details
 from .mongodb_crud import MongodbHandler
 # from .mongodb_crud import write_data_dict_of_dict_multi
 # from .mongodb_crud import write_data_line_to_mongodb

@@ -9,9 +9,7 @@ def colorbar_config(n_same_color_bins):
     colorbar[0]['intervals'] = [0, 1, 2, 3, 4, 5, 6, 7]
     colorbar[0]['colors'] = ['#000000', '#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b'][::-1]
 
-    colorbar[1]['title'] = colorbar[0]['title']
-    colorbar[1]['intervals'] = [0, 1, 2, 3, 4, 5, 6, 7]
-    colorbar[1]['colors'] = ['#000000', '#0c2a50', '#593d9c', '#a65c85', '#de7065', '#f9b641', '#e8fa5b'][::-1]
+    colorbar[1] = colorbar[0]
 
     colorbar[2]['title'] = "Difference (public transport minus driving time) - Hours"
     colorbar[2]['intervals'] = [-1.5, -1.0, -0.5, -0.25, 0, 0.25, 0.5, 1.0, 1.5]
@@ -30,7 +28,7 @@ def colorbar_config(n_same_color_bins):
                                        '#87BEDA', '#87BEDA', '#2F79B5', '#2F79B5', '#2F79B5', '#2F79B5', '#053061',
                                        '#053061', '#053061', '#053061'][::-1]
 
-    for i in range(0, 3):
+    for i in range(3):
         colorbar[i]['input'] = core_func.discrete_colorscale(colorbar[i]['intervals'], colorbar[i]['colors'])
         colorbar[i]['bvals'] = np.array(colorbar[i]['intervals'])
         colorbar[i]['tickvals'] = [np.mean(colorbar[i]['intervals'][k:k + 2]) * 60 * 60 for k in range(
@@ -40,9 +38,7 @@ def colorbar_config(n_same_color_bins):
                 f'{colorbar[i]["bvals"][k]}-{colorbar[i]["bvals"][k + 1]}' for k in
                 range(1, len(colorbar[i]["bvals"]) - 2)] + [f'>{colorbar[i]["bvals"][-2]}']
         else:
-            colorbar[i]['ticktext'] = [f'More than {colorbar[i]["bvals"][1]}<br>hour slower'] + [
+            colorbar[i]['ticktext'] = [f'More than {colorbar[i]["bvals"][1]}<br>hour(s) slower'] + [
                 f'{colorbar[i]["bvals"][k]} to {colorbar[i]["bvals"][k + 1]}' for k in
-                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'More than {colorbar[i]["bvals"][-2]}<br>hour faster']
-
-
+                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'More than {colorbar[i]["bvals"][-2]}<br>hour(s) faster']
     return colorbar

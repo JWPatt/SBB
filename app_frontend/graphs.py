@@ -22,7 +22,7 @@ def get_hist_graph(hist_x_vals, colorbar, option_dropdown):
                              end=max(colorbar[option_dropdown]['intervals']) if option_dropdown != 3 else bin_min,
                              size=(max(colorbar[option_dropdown]['intervals'])
                                    - min(colorbar[option_dropdown]['intervals']))
-                                  / (n_bins if option_dropdown < 2 else n_bins_diff)
+                                   / (n_bins if option_dropdown < 2 else n_bins_diff)
                             ),
                          ),
 
