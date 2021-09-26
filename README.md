@@ -5,31 +5,30 @@
 <!-- ([![Build Status][travis-image]][travis-url]) 
 [![Downloads Stats][npm-downloads]][npm-url]-->
 
-This program queries the SBB's API to gather information on journey times from a starting origin to the rest of the
-country. Given an origin city, starting time, and day of the month, a map is built showing how long it takes to get 
-to each other station.
+This app plots public transport locations color coded by the time it takes to travel to them from some origin station.
+It can plot the travel time for public transport (train, bus, cable car, etc.), travel time for driving by car, and can
+show the difference between the two. 
 
-Click anywhere on the image to view the interactive map.
-[![alt text](example_results/homepage_example.png)](https://jwpatt.github.io/SBB/)
+The map is LIVE at sbb-time-map.herokuapp.com
 
-SBB gives each user 1000 free API requests per day, but there are ~30,000 destinations in the network. The original 
-version of this project cleverly determined which stations were end nodes and queried only these, getting data for each
-intermediate station along the way. There were still about 1500 end nodes, and each query took 0.2 to 10 seconds - no bueno.
+Currently, the list of origin cities is static: the SBB's API and the [OSRM](https://github.com/Project-OSRM/osrm-backend)
+together take too long to query and process - on the order of 5 to 15 minutes to gather the full dataset for a new
+location. There are ways to speed this up, such as loading partial results that include the key destinations, but I am
+turning my focus to cleaning the code and making it something I can share and be proud of (rather than the ugly yet 
+functional form it is currently in).
 
-Thankfully, a website called search.ch has a much better API: still with the 1000 free requests per day, but now with 
-multiple destination queries. Now, in 15 API calls, the full ~30,000 destination data are at our disposal. Each API get
-takes about 10 seconds, which is out of my hands, but the code does query it asynchronously, allowing for parallel requests.
+I have enjoyed this project quite a bit, as it has forced me to learn how to do a few things:
+- MongoDB (a NoSQL database)
+- Python's multiprocessing library
+- Asynchronous IO API queries (asyncio)
+- Plotly and Dash (a stripped down version of Flask)
 
-As of writing, this is a workable web app using Dash/Flask, but hosting it on Heroku is harder than I expected. So for
-now, it must remain a static html file 
-
-Next steps:
-- Get it running on Heroku!
-- Clean up this git.
-- Create a way for users to input their own starting city/time/date and add that data to the database. Currently too slow
-for such a feature, but perhaps a "submit this and check back later" feature.
-- Make sure it works for mobile.
-- Get the histogram to be a litle more exciting.
+To make a proper project out of it, I now need to incorporate:
+- Automatic unit testing
+- Proper documentation and commenting
+- Type hinting
+- Docstrings
+- Proper separation of concerns and class architecture
 
 <!-- Markdown link & img dfn's -->
 [python-image]: https://img.shields.io/badge/python-3.6-blue.svg
