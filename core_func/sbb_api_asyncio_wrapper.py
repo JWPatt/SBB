@@ -75,4 +75,4 @@ if __name__ == "__main__":
     for origin_details in origin_details_list:
         print(origin_details)
         mgdb.set_col(origin_details)
-        success = core_func.primary_wrapper(origin_details, mgdb)
+        success = core_func.primary_wrapper(io_func.reformat_origin_details(origin_details), mgdb)

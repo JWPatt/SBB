@@ -17,7 +17,8 @@ class MongodbHandler:
         return mgdb
 
     def set_col(self, col_name):
-        self.collection = getattr(self.db, col_name.replace(' ', '_').replace('-', '_').replace(':', '_'))
+        if type(col_name) == str:
+            self.collection = getattr(self.db, col_name.replace(' ', '_').replace('-', '_').replace(':', '_'))
 
     def write_data_dict_of_dict(self, data_dict_of_dict):
         batch = []
