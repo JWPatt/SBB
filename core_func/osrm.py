@@ -1,8 +1,56 @@
 import time
 import requests
+import sys
 
 
-def osrm_query(origin_city, city_latlon_dict, osrm_url, req_session):
+def osrm_query_one(query_url, req_session):
+    """Submits query to OSRM service and extracts the duration (in seconds).
+
+    Args:
+        query_url (str): URL to send to OSRM service
+        req_session (requests.Session): HTTP session
+
+    Returns:
+        int: Drive time from origin to destination (in seconds)
+    """
+    response = req_session.get(query_url)
+    jdata = response.json()
+    if response.status_code == 200:
+        return jdata['routes'][0]['duration']
+
+
+def osrm_build_url(osrm_base_url, origin_latlon, dest_values):
+    """Formats the URL to be used with the OSRM service.
+    
+    Args:
+        osrm_base_url (str): Base URL for OSRM (e.g. "http://127.0.0.1:5000")
+        origin_latlon (dict): Dictionary containing latitude & longitude information for the origin city
+        dest_values (dict): Dictionary containing latitude & longitude information for the destination city
+
+    Returns:
+        str: A URL that can be sent to the OSRM service
+    """
+    return f"{osrm_base_url}/route/v1/driving/{origin_latlon['lon']},{origin_latlon['lat']};" \
+                            f"{dest_values['lon']},{dest_values['lat']}?steps=false"
+
+
+def status_bar_printer(count, n_destinations):
+    """Prints status of OSRM queries: percentage and # of queries.
+
+    Args:
+        count (int): The number of queries performed already
+        n_destinations (int): The number of total destinations to be queried
+
+    Returns:
+        None - prints status bar, percentage completion, and # of queries performed
+    """
+    sys.stdout.write('\r')
+    progress = count / n_destinations * 20
+    sys.stdout.write("[%-20s] %d%% - No. queries: %i" % ('=' * int(progress), progress * 5, count))
+    sys.stdout.flush()
+
+
+def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
     """This script queries and processes the response from the Open Streetmap Routing Machine.
 
     Args:
@@ -21,23 +69,42 @@ def osrm_query(origin_city, city_latlon_dict, osrm_url, req_session):
                        "especially) and capitalization.")
 
     count = 0
-    return_dict = dict(city_latlon_dict)
+    connection_error_count = 0
+    connection_error_destinations = []
+    n_destinations = len(city_latlon_dict.keys())
+    t_init = time.time()
     for dest_city, dest_values in city_latlon_dict.items():
         while True:
             try:
                 count += 1
-                query_url = f"{osrm_url}/route/v1/driving/{origin_latlon['lon']},{origin_latlon['lat']};" \
-                            f"{dest_values['lon']},{dest_values['lat']}?steps=false"
+                query_url = osrm_build_url(osrm_base_url, origin_latlon, dest_values)
+                city_latlon_dict[dest_city]['drive_time'] = osrm_query_one(query_url, req_session)
 
-                response = req_session.get(query_url)
-                jdata = response.json()
-                return_dict[dest_city] = {}
-                if response.status_code == 200:
-                    city_latlon_dict[dest_city]['drive_time'] = jdata['routes'][0]['duration']
+                # I am willing to suffer some slowdown (~1 sec per 2000 queries) to keep an eye on progress
+                status_bar_printer(count, n_destinations)
                 break
-            except ConnectionError:
-                continue
 
-    return return_dict
+            # Sometimes the connection fails. It appears random, working the next minute. Save them and try again later.
+            except ConnectionError:
+                connection_error_count += 1
+                connection_error_destinations.append(dest_city)
+
+    print(f'\nTotal OSRM compute time: {time.time() - t_init} seconds.')
+    print(f'Total of {connection_error_count} connection errors --> and therefore missing data!')
+
+    # Try a second time to get these missed values.
+    if len(connection_error_destinations) > 0:
+        for dest_city in connection_error_destinations:
+            print(f'Retrying query for {dest_city}')
+            query_url = osrm_build_url(osrm_base_url, origin_latlon, city_latlon_dict[dest_city])
+            city_latlon_dict[dest_city]['drive_time'] = osrm_query_one(query_url, req_session)
+            if 'drive_time' in city_latlon_dict[dest_city]:
+                connection_error_count += -1
+                
+    print(f'Total of {connection_error_count} connection errors remaining!')
+
+    return city_latlon_dict
+
+
 
 
