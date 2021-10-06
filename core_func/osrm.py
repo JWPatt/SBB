@@ -1,10 +1,14 @@
 import time
 import requests
 import sys
+import json
+from io_func import status_bar_printer
 
 
 def osrm_query_one(query_url, req_session):
     """Submits query to OSRM service and extracts the duration (in seconds).
+    NB: the origin and destination names must be exact. "Zurich HB" != "Zürich HB"
+
 
     Args:
         query_url (str): URL to send to OSRM service
@@ -13,10 +17,13 @@ def osrm_query_one(query_url, req_session):
     Returns:
         int: Drive time from origin to destination (in seconds)
     """
-    response = req_session.get(query_url)
-    jdata = response.json()
-    if response.status_code == 200:
-        return jdata['routes'][0]['duration']
+    response = req_session.get(query_url, timeout=1)
+    try:
+        jdata = response.json()
+        if response.status_code == 200:
+            return jdata['routes'][0]['duration']
+    except json.decoder.JSONDecodeError:
+        pass
 
 
 def osrm_build_url(osrm_base_url, origin_latlon, dest_values):
@@ -31,7 +38,7 @@ def osrm_build_url(osrm_base_url, origin_latlon, dest_values):
         str: A URL that can be sent to the OSRM service
     """
     return f"{osrm_base_url}/route/v1/driving/{origin_latlon['lon']},{origin_latlon['lat']};" \
-                            f"{dest_values['lon']},{dest_values['lat']}?steps=false"
+           f"{dest_values['lon']},{dest_values['lat']}?steps=false"
 
 
 def status_bar_printer(count, n_destinations):
@@ -56,7 +63,7 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
     Args:
         origin_city (str): Origin city
         city_latlon_dict (dict of dict): Dictionary of lat/lon coordinates, with destination cities as keys
-        osrm_url (str): URL of the OSRM service
+        osrm_base_url (str): URL of the OSRM service
         req_session (requests.Session): HTTP session
 
     Returns:
@@ -65,8 +72,8 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
     try:
         origin_latlon = city_latlon_dict[origin_city]
     except KeyError:
-        raise KeyError("The Origin city is not a key within the city data dict. Check the spelling (special characters"
-                       "especially) and capitalization.")
+        raise KeyError(f'The Origin city ({origin_city}) is not a key within the city data dict.'
+                       f'Check the spelling (special characters especially) and capitalization.')
 
     count = 0
     connection_error_count = 0
@@ -78,7 +85,10 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
             try:
                 count += 1
                 query_url = osrm_build_url(osrm_base_url, origin_latlon, dest_values)
-                city_latlon_dict[dest_city]['drive_time'] = osrm_query_one(query_url, req_session)
+                try:
+                    city_latlon_dict[dest_city]['drive_time'] = osrm_query_one(query_url, req_session)
+                except json.decoder.JSONDecodeError:
+                    raise
 
                 # I am willing to suffer some slowdown (~1 sec per 2000 queries) to keep an eye on progress
                 status_bar_printer(count, n_destinations)
@@ -88,20 +98,23 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
             except ConnectionError:
                 connection_error_count += 1
                 connection_error_destinations.append(dest_city)
+            except requests.exceptions.ReadTimeout:
+                connection_error_count += 1
+                connection_error_destinations.append(dest_city)
 
     print(f'\nTotal OSRM compute time: {time.time() - t_init} seconds.')
-    print(f'Total of {connection_error_count} connection errors --> and therefore missing data!')
 
     # Try a second time to get these missed values.
     if len(connection_error_destinations) > 0:
+        print(f'Total of {connection_error_count} connection errors --> and therefore missing data!')
         for dest_city in connection_error_destinations:
             print(f'Retrying query for {dest_city}')
             query_url = osrm_build_url(osrm_base_url, origin_latlon, city_latlon_dict[dest_city])
             city_latlon_dict[dest_city]['drive_time'] = osrm_query_one(query_url, req_session)
             if 'drive_time' in city_latlon_dict[dest_city]:
                 connection_error_count += -1
-                
-    print(f'Total of {connection_error_count} connection errors remaining!')
+        if len(connection_error_destinations) > 0:
+            print(f'Total of {connection_error_count} connection errors remaining!')
 
     return city_latlon_dict
 

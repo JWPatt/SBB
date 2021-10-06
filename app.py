@@ -28,13 +28,16 @@ hovertext_cols, travel_time_cols = app_frontend.get_dropdown_maps(options_list)
 # Colorbar for graphing (not very flexible)
 colorbar = app_frontend.colorbar_config(4)
 
+print(os.environ)
 # Get tokens from the Heroku environment variable, else use a local file (not on github)
 try:
     mgdb_url = os.environ.get('MONGODB_URI', None)
+    print(os.environ.get('MONGODB_URI', None))
 except:
     print("MongoDB url could not be found - environment variable 'MONGODB_URI' was not found")
 
 try:
+    print(os.environ.get('MAPBOX_PUBLIC', None))
     mapbox_access_token = os.environ.get('MAPBOX_PUBLIC', None)
 except:
     print("Mapbox token could not be found - environment variable 'MAPBOX_PUBLIC' was not found")
@@ -147,7 +150,8 @@ def update_graph(sbb_json, display_times, option_dropdown):
         sbb_list = []
         display_times = [int(i) for i in display_times]
         for i in range(len(display_times)):
-            sbb_list.append(sbb[(sbb[travel_time_cols[options_list[option_dropdown]]] <= display_times[i] * 60 * 60) & (sbb[travel_time_cols[options_list[option_dropdown]]] > (display_times[i] - 1) * 60 * 60)])
+            sbb_list.append(sbb[(sbb[travel_time_cols[options_list[option_dropdown]]] <= display_times[i] * 3600) &
+                                (sbb[travel_time_cols[options_list[option_dropdown]]] > (display_times[i] - 1) * 3600)])
         sbb = pd.concat(sbb_list)
 
 

@@ -13,7 +13,6 @@ class MongodbHandler:
     def init_and_set_col(cls, url, database_name, col_name):
         mgdb = cls(url, database_name)
         mgdb.set_col(col_name)
-        # mgdb.collection = getattr(mgdb.db, col_name.replace(' ', '_').replace('-', '_').replace(':', '_'))
         return mgdb
 
     def set_col(self, col_name):
@@ -29,24 +28,6 @@ class MongodbHandler:
     def update_data_dict_of_dict(self, data_dict_of_dict):
         for key in data_dict_of_dict:
             self.collection.replace_one({'destination': key}, data_dict_of_dict[key])
-
-    def update_col_dataframe(self, data_dict_of_dict):
-        batch = []
-        for key in data_dict_of_dict:
-            batch.append(data_dict_of_dict[key])
-        self.collection.insert_many(batch)
-
-    def get_all_data_list(self, origin_details=None):
-        if origin_details is None:
-            if self.collection == '':
-                print('Attempting to read from DB without origin_details - DB doesn\'t know where to look!')
-                input()
-            else:
-                return list(self.collection.find())
-        else:
-            col = io_func.reformat_origin_details(origin_details)
-            data_ = getattr(self.db, col)
-            return list(data_.find())
 
     # Get data from db given an origin city, date, and time
     def get_data_list(self, origin_details=None):
