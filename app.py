@@ -17,7 +17,7 @@ mapbox_env_var = 'MAPBOX_PUBLIC'
 
 mgdb_url = os.environ[mgdb_env_var]
 mgdb = io_func.MongodbHandler(mgdb_url, mbdg_db_name)
-mapbox_access_token = os.environ['MAPBOX_PUBLIC']
+mapbox_access_token = os.environ[mapbox_env_var]
 
 # List of selectable origin locations
 dropdown_locations = app_frontend.get_dropdown_locations()

@@ -104,7 +104,10 @@ def get_page_layout(dropdown_locations, options_list):
                                 type="default",
                                 children=[html.Div(dcc.Graph(id="map-graph",
                                                              style={'height': '70vh'},
-                                                             figure=core_func.blank_fig()),)],
+                                                             figure=core_func.blank_fig()
+                                                             ),
+                                                   )
+                                          ],
                                 style={'height': '70vh'}
                             ),
 
@@ -120,7 +123,10 @@ def get_page_layout(dropdown_locations, options_list):
                                 type="default",
                                 children=[html.Div(dcc.Graph(id="histogram",
                                                              style={'height': '27vh'},
-                                                             figure=core_func.blank_fig()))],
+                                                             figure=core_func.blank_fig()
+                                                             )
+                                                   )
+                                          ],
                                 style={'height': '30vh'}
                             ),
                         ],
