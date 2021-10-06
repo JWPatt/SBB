@@ -1,5 +1,6 @@
 from plotly import graph_objs as go
 
+
 def sec_to_hhmm(seconds):
     """
     Convert an interger number of seconds into hours in minutes in hh:mm format.

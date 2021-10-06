@@ -13,10 +13,10 @@ import core_func
 import os
 
 mgdb_url = os.environ.get('MONGODB_URI', None)
-mgdb_in = io_func.MongodbHandler(pd.read_csv(mgdb_url), "SBB_time_map")
-destinations = set(mgdb_in.get_endnode_set('endnodes_Zurich'))
-# destinations = ['Landquart']
-mgdb_out = io_func.MongodbHandler(pd.read_csv(mgdb_url), "test_20211005_2")
+mgdb_in = io_func.MongodbHandler(mgdb_url, "SBB_time_map")
+# destinations = set(mgdb_in.get_endnode_set('endnodes_Zurich'))
+destinations = ['Landquart']
+mgdb_out = io_func.MongodbHandler(mgdb_url, "test_20211005_2")
 
 origin_city = ['Davos']
 origin_details_list = []
@@ -31,10 +31,10 @@ for origin_details in origin_details_list:
     sbb_results = core_func.sbb_api_asyncio_wrapper(origin_details, destinations, mgdb_in)
     osrm_results = core_func.osrm_wrapper(origin_details, sbb_results)
 
-    for dest, dest_data in osrm_results.items():
-        dest_data['hovertext_train'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['train_time'])}"
-        dest_data['hovertext_drive'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_time'])}"
-        dest_data['hovertext_diff'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_minus_train'])}"
+    # for dest, dest_data in osrm_results.items():
+    #     dest_data['hovertext_train'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['train_time'])}"
+    #     dest_data['hovertext_drive'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_time'])}"
+    #     dest_data['hovertext_diff'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_minus_train'])}"
 
     mgdb_out.write_data_dict_of_dict(osrm_results)
 

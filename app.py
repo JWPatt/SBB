@@ -1,6 +1,5 @@
 # General
 import pandas as pd
-import time
 import os
 
 # Front end / plotting
@@ -12,11 +11,13 @@ from plotly import graph_objs as go
 import io_func
 import app_frontend
 
+mgdb_env_var = 'MONGODB_URI'
+mbdg_db_name = "SBB_time_map_test2"
+mapbox_env_var = 'MAPBOX_PUBLIC'
 
-app = dash.Dash(
-    __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
-)
-server = app.server
+mgdb_url = os.environ[mgdb_env_var]
+mgdb = io_func.MongodbHandler(mgdb_url, mbdg_db_name)
+mapbox_access_token = os.environ['MAPBOX_PUBLIC']
 
 # List of selectable origin locations
 dropdown_locations = app_frontend.get_dropdown_locations()
@@ -28,31 +29,20 @@ hovertext_cols, travel_time_cols = app_frontend.get_dropdown_maps(options_list)
 # Colorbar for graphing (not very flexible)
 colorbar = app_frontend.colorbar_config(4)
 
-print(os.environ)
-# Get tokens from the Heroku environment variable, else use a local file (not on github)
-try:
-    mgdb_url = os.environ.get('MONGODB_URI', None)
-    print(os.environ.get('MONGODB_URI', None))
-except:
-    print("MongoDB url could not be found - environment variable 'MONGODB_URI' was not found")
-
-try:
-    print(os.environ.get('MAPBOX_PUBLIC', None))
-    mapbox_access_token = os.environ.get('MAPBOX_PUBLIC', None)
-except:
-    print("Mapbox token could not be found - environment variable 'MAPBOX_PUBLIC' was not found")
-
-
-# Layout of Dash App
+app = dash.Dash(
+    __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
+)
+server = app.server
 app.layout = app_frontend.get_page_layout(dropdown_locations, options_list)
 
 
 # Get data from MongoDB, process for use by plotly
-def global_store(selectedLocation):
-    if not selectedLocation:
-        selectedLocation = 'Bern'
+def global_store(selected_location):
+    if not selected_location:
+        selected_location = 'Bern'
 
-    mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map_test2", selectedLocation)
+    # mgdb = io_func.MongodbHandler.init_and_set_col(mgdb_url, "SBB_time_map_test2", selectedLocation)
+    mgdb.set_col(selected_location)
 
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1)
     sbb['drive_minus_train'] = -sbb['drive_minus_train']
@@ -91,10 +81,11 @@ def update_bar_selector(value, selected_times):
 
 
 # Clear Selected Data if Click Data is used
-@app.callback(Output("histogram", "selectedData"),
-              [
-                  Input("histogram", "clickData")
-              ],
+@app.callback(
+    Output("histogram", "selectedData"),
+    [
+      Input("histogram", "clickData")
+    ],
 )
 def update_selected_data(selected_times):
     if selected_times:
@@ -122,8 +113,6 @@ def update_histogram(sbb_json, option_dropdown):
 
     else:
         hist_x_vals = []
-        hist_layout = go.Layout()
-
 
     return go.Figure(
         data=app_frontend.get_hist_graph(hist_x_vals, colorbar, option_dropdown),
@@ -154,7 +143,6 @@ def update_graph(sbb_json, display_times, option_dropdown):
                                 (sbb[travel_time_cols[options_list[option_dropdown]]] > (display_times[i] - 1) * 3600)])
         sbb = pd.concat(sbb_list)
 
-
     return go.Figure(
         data=app_frontend.get_mapbox_graph(sbb,
                                            hovertext_cols,
@@ -169,4 +157,4 @@ def update_graph(sbb_json, display_times, option_dropdown):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host='0.0.0.0', port=5000)
+    app.run_server(debug=True, host='0.0.0.0', port=5001)

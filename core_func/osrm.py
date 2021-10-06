@@ -9,7 +9,6 @@ def osrm_query_one(query_url, req_session):
     """Submits query to OSRM service and extracts the duration (in seconds).
     NB: the origin and destination names must be exact. "Zurich HB" != "Zürich HB"
 
-
     Args:
         query_url (str): URL to send to OSRM service
         req_session (requests.Session): HTTP session
@@ -72,7 +71,7 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
     try:
         origin_latlon = city_latlon_dict[origin_city]
     except KeyError:
-        raise KeyError(f'The Origin city ({origin_city}) is not a key within the city data dict.'
+        raise KeyError(f'The origin city ({origin_city}) is not a key within the city data dict.'
                        f'Check the spelling (special characters especially) and capitalization.')
 
     count = 0
@@ -90,8 +89,9 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
                 except json.decoder.JSONDecodeError:
                     raise
 
-                # I am willing to suffer some slowdown (~1 sec per 2000 queries) to keep an eye on progress
-                status_bar_printer(count, n_destinations)
+                # I am willing to suffer some slowdown to keep an eye on progress
+                if count % 100 == 0:
+                    status_bar_printer(count, n_destinations)
                 break
 
             # Sometimes the connection fails. It appears random, working the next minute. Save them and try again later.

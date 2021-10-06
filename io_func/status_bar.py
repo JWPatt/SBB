@@ -1,7 +1,7 @@
 import sys
 
 
-def status_bar_printer(count, total):
+def status_bar_printer(count, total, suffix):
     """Prints status of OSRM queries: percentage and # of queries.
 
     Args:
@@ -11,11 +11,11 @@ def status_bar_printer(count, total):
     Returns:
         None - prints status bar, percentage completion, and # of queries performed
     """
-    # sys.stdout.write('\r')
-    # progress = count / total * 20
-    # sys.stdout.write("[%-20s] %d%% - %i of %i" % ('=' * int(progress), progress * 5, count, total))
-    # sys.stdout.flush()
-
+    sys.stdout.write('\r')
     progress = count / total * 20
-    print("[%-20s] %d%% - %i of %i" % ('=' * int(progress), progress * 5, count, total), end='\r')
+    sys.stdout.write("[%-20s] %d%% - %i of %i %s" % ('=' * int(progress), progress * 5, count, total, suffix))
+    sys.stdout.flush()
+    #
+    # progress = count / total * 20
+    # print("[%-20s] %d%% - %i of %i" % ('=' * int(progress), progress * 5, count, total), end='\r')
 

@@ -3,11 +3,20 @@ import io_func
 
 
 class MongodbHandler:
+    """Class to handle MongoDB read and write actions.
+
+    Args:
+        url (str): URL to the MongoDB server
+        database_name (str): name of the database to be used
+
+    Attributes:
+        client (pymongo.MongoClient): the MongoDB client
+        db (pymongo database): the MongoClient database object (database name = origin city)
+        collection: the MongoClient collection of documents (collection name = destiation city)
+    """
     def __init__(self, url, database_name):
         self.client = MongoClient(url)
-        self.db = getattr(self.client, database_name)
-        self.origins = []
-        self.collections = self.db.list_collection_names()
+        self.db = self.client[database_name]
 
     @classmethod
     def init_and_set_col(cls, url, database_name, col_name):
