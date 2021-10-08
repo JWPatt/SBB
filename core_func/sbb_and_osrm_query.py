@@ -30,12 +30,6 @@ for origin_details in origin_details_list:
 
     sbb_results = core_func.sbb_api_asyncio_wrapper(origin_details, destinations, mgdb_in)
     osrm_results = core_func.osrm_wrapper(origin_details, sbb_results)
+    final_results = core_func.add_hovertext_difference(osrm_results)
 
-    # for dest, dest_data in osrm_results.items():
-    #     dest_data['hovertext_train'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['train_time'])}"
-    #     dest_data['hovertext_drive'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_time'])}"
-    #     dest_data['hovertext_diff'] = f"{dest_data['destination']}<br>{sec_to_hhmm(dest_data['drive_minus_train'])}"
-
-    mgdb_out.write_data_dict_of_dict(osrm_results)
-
-
+    mgdb_out.write_data_dict_of_dict(final_results)
