@@ -56,7 +56,7 @@ def create_url(_origin_details, travel_start_date, travel_start_time, destinatio
     return f'{prefix}{origin_body}{destination_body}'
 
 
-async def asyncio_process_response(_origin_details, response ):
+async def asyncio_process_response(_origin_details, response):
     """Wraps the process_response function for use with asyncio (must use "await" keyword). Appears redundant,
     but is necessary for asyncio to work correctly.
 

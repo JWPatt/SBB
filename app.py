@@ -23,7 +23,7 @@ mapbox_access_token = os.environ[mapbox_env_var]
 dropdown_locations = app_frontend.get_dropdown_locations()
 
 # List of selectable options and how they map to the correct columns in the database
-options_list = ['Public Transport', 'Driving', 'Difference (public transport minus driving time)']
+options_list = ['Public Transport', 'Driving', 'Difference (Driving vs Public Transport)']
 hovertext_cols, travel_time_cols = app_frontend.get_dropdown_maps(options_list)
 
 # Colorbar for graphing (not very flexible)
@@ -45,7 +45,7 @@ def global_store(selected_location):
     mgdb.set_col(selected_location)
 
     sbb = pd.DataFrame(mgdb.get_data_list()).drop('_id', axis=1)
-    sbb['drive_minus_train'] = -sbb['drive_minus_train']
+    # sbb['drive_minus_train'] = -sbb['drive_minus_train']
     return sbb
 
 

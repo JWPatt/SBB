@@ -11,10 +11,10 @@ def colorbar_config(n_same_color_bins):
 
     colorbar[1] = colorbar[0]
 
-    colorbar[2]['title'] = "Difference (public transport minus driving time) - Hours"
+    colorbar[2]['title'] = "Driving vs Public Transport - Hours"
     colorbar[2]['intervals'] = [-1.5, -1.0, -0.5, -0.25, 0, 0.25, 0.5, 1.0, 1.5]
-    colorbar[2]['colors'] = ['#67001F', '#C13639', '#F09C7B', '#FBE3D4', '#DBEAF2', '#87BEDA', '#2F79B5', '#053061'][
-                            ::-1]
+    colorbar[2]['colors'] = ['#67001F', '#C13639', '#F09C7B', '#FBE3D4', '#DBEAF2', '#87BEDA', '#2F79B5', '#053061']
+    #[::-1]
 
     # Plotly histogram requires a color value be given to each bin (no general/flexible option is available)
     # The histogram looks better with more than simply 8 bins, but we still want to limit it to 8 colors
@@ -26,7 +26,7 @@ def colorbar_config(n_same_color_bins):
     colorbar[2]['colors_histogram'] = ['#67001F', '#67001F', '#67001F', '#67001F', '#C13639', '#C13639', '#C13639',
                                        '#C13639', '#F09C7B', '#F09C7B', '#FBE3D4', '#FBE3D4', '#DBEAF2', '#DBEAF2',
                                        '#87BEDA', '#87BEDA', '#2F79B5', '#2F79B5', '#2F79B5', '#2F79B5', '#053061',
-                                       '#053061', '#053061', '#053061'][::-1]
+                                       '#053061', '#053061', '#053061']#[::-1]
 
     for i in range(3):
         colorbar[i]['input'] = core_func.discrete_colorscale(colorbar[i]['intervals'], colorbar[i]['colors'])
@@ -38,7 +38,7 @@ def colorbar_config(n_same_color_bins):
                 f'{colorbar[i]["bvals"][k]}-{colorbar[i]["bvals"][k + 1]}' for k in
                 range(1, len(colorbar[i]["bvals"]) - 2)] + [f'>{colorbar[i]["bvals"][-2]}']
         else:
-            colorbar[i]['ticktext'] = [f'More than {colorbar[i]["bvals"][1]}<br>hour(s) slower'] + [
+            colorbar[i]['ticktext'] = [f'Driving is more than {colorbar[i]["bvals"][1]}<br>hour(s) faster'] + [
                 f'{colorbar[i]["bvals"][k]} to {colorbar[i]["bvals"][k + 1]}' for k in
-                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'More than {colorbar[i]["bvals"][-2]}<br>hour(s) faster']
+                range(1, len(colorbar[i]["bvals"]) - 2)] + [f'Driving is more than {colorbar[i]["bvals"][-2]}<br>hour(s) slower']
     return colorbar

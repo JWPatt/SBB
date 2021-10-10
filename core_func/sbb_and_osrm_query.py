@@ -6,9 +6,7 @@ As of 6.10.2021, a full search for a new location takes roughly 6 minutes: 30 se
 another 5 minutes for the OSRM routing (on my local machine at least, but this gives a rough estimate).
 """
 
-import pandas as pd
 import io_func
-from core_func import sec_to_hhmm
 import core_func
 import os
 
@@ -28,7 +26,7 @@ for origin_details in origin_details_list:
     mgdb_in.set_col(origin_details)
     mgdb_out.set_col(origin_details)
 
-    sbb_results = core_func.sbb_api_asyncio_wrapper(origin_details, destinations, mgdb_in)
+    sbb_results = core_func.sbb_api_asyncio_wrapper(origin_details, destinations)
     osrm_results = core_func.osrm_wrapper(origin_details, sbb_results)
     final_results = core_func.add_hovertext_difference(osrm_results)
 

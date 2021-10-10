@@ -4,9 +4,17 @@ import core_func
 import asyncio
 
 
-def sbb_api_asyncio_wrapper(origin_details, data_set_master, mgdb):
+def sbb_api_asyncio_wrapper(origin_details, data_set_master):
+    """Queries the SBB API asynchronously, processes results, and returns them
+
+    Args:
+        origin_details (str): origin city
+        data_set_master (set): set of destination cities
+
+    Returns:
+        dict of dict: full processed results with SBB time table information
+    """
     try:
-        # Initialize variables
         dest_per_query = 200
 
         return asyncio.run(core_func.sbb_api_asyncio.async_api_handler(origin_details, data_set_master, dest_per_query))
