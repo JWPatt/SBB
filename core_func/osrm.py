@@ -30,8 +30,8 @@ def osrm_build_url(osrm_base_url, origin_latlon, dest_values):
     
     Args:
         osrm_base_url (str): Base URL for OSRM (e.g. "http://127.0.0.1:5000")
-        origin_latlon (dict): Dictionary containing latitude & longitude information for the origin city
-        dest_values (dict): Dictionary containing latitude & longitude information for the destination city
+        origin_latlon (dict): Dictionary containing latitude ('lat') & longitude ('lon') for the origin city
+        dest_values (dict): Dictionary containing latitude ('lat') & longitude ('lon') for the destination city
 
     Returns:
         str: A URL that can be sent to the OSRM service
