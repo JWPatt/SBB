@@ -40,20 +40,20 @@ def osrm_build_url(osrm_base_url, origin_latlon, dest_values):
            f"{dest_values['lon']},{dest_values['lat']}?steps=false"
 
 
-def status_bar_printer(count, n_destinations):
-    """Prints status of OSRM queries: percentage and # of queries.
-
-    Args:
-        count (int): The number of queries performed already
-        n_destinations (int): The number of total destinations to be queried
-
-    Returns:
-        None - prints status bar, percentage completion, and # of queries performed
-    """
-    sys.stdout.write('\r')
-    progress = count / n_destinations * 20
-    sys.stdout.write("[%-20s] %d%% - No. queries: %i" % ('=' * int(progress), progress * 5, count))
-    sys.stdout.flush()
+# def status_bar_printer(count, n_destinations):
+#     """Prints status of OSRM queries: percentage and # of queries.
+#
+#     Args:
+#         count (int): The number of queries performed already
+#         n_destinations (int): The number of total destinations to be queried
+#
+#     Returns:
+#         None - prints status bar, percentage completion, and # of queries performed
+#     """
+#     sys.stdout.write('\r')
+#     progress = count / n_destinations * 20
+#     sys.stdout.write("[%-20s] %d%% - No. queries: %i" % ('=' * int(progress), progress * 5, count))
+#     sys.stdout.flush()
 
 
 def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
@@ -91,7 +91,7 @@ def osrm_query_many(origin_city, city_latlon_dict, osrm_base_url, req_session):
 
                 # I am willing to suffer some slowdown to keep an eye on progress
                 if count % 100 == 0:
-                    status_bar_printer(count, n_destinations)
+                    status_bar_printer(count, n_destinations, suffix='OSRM queries')
                 break
 
             # Sometimes the connection fails. It appears random, working the next minute. Save them and try again later.
