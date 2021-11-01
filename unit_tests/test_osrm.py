@@ -1,12 +1,14 @@
 import unittest
 from core_func.osrm import osrm_build_url, osrm_query_one
 import requests
+import os
 
 
 class TestOSRMModule(unittest.TestCase):
     """Test for the OSRM querying module"""
 
-    osrm_base_url = "http://127.0.0.1:5000"
+    # osrm_base_url = "http://127.0.0.1:5000"
+    osrm_base_url = os.environ['OSRM_URL']
     origin_latlon = {'lat': 47.3769, 'lon': 8.5417}
     dest_values = {'lat': 46.9480, 'lon': 7.4474}
 
